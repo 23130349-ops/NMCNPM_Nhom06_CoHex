@@ -3,6 +3,7 @@ package controller;
 import model.*;
 import view.*;
 import javax.swing.*;
+import java.util.ArrayList;
 
 /**
  * HexController – Bộ điều khiển trung tâm của trò chơi Hex.
@@ -101,6 +102,8 @@ public class HexController {
         }
 
         panel.setBoard(game.getBoard());
+        panel.setLastMove(-1, -1);
+        panel.setWinningPath(new ArrayList<>());
         panel.setThinking(false);
         panel.repaint();
 
@@ -117,6 +120,7 @@ public class HexController {
         if (!game.isEmpty(r, c)) return;
 
         game.place(r, c, current.getColor());
+        panel.setLastMove(r, c);
         panel.repaint();
 
         if (isGameOver()) return;
@@ -148,6 +152,7 @@ public class HexController {
 
                     if (move != null) {
                         game.place(move[0], move[1], current.getColor());
+                        panel.setLastMove(move[0], move[1]);
                     }
                     panel.repaint();
 
@@ -163,6 +168,8 @@ public class HexController {
     private boolean isGameOver() {
         int winner = game.checkWinner();
         if (winner != HexGame.EMPTY) {
+            panel.setWinningPath(game.getWinningPath());
+            panel.repaint();
             String msg = (winner == HexGame.RED) ? "RED THẮNG!" : "BLUE THẮNG!";
 
             int choice = JOptionPane.showConfirmDialog(
