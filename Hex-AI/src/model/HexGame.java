@@ -1,5 +1,7 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 /**
@@ -19,6 +21,7 @@ public class HexGame {
     private final int n;
     private final int[][] board;
     private int current;
+    private List<int[]> winningPathList = new ArrayList<>();
 
     // Stack lưu trữ lịch sử các nước đã đi (Mỗi phần tử là mảng int[] chứa {r, c})
     private Stack<int[]> moveHistory;
@@ -67,6 +70,11 @@ public class HexGame {
     public Stack<int[]> getMoveHistory() {
         return moveHistory;
     }
+    // Getter để HexController lấy danh sách ô thắng truyền qua cho HexPanel vẽ màu vàng
+    public List<int[]> getWinningPath() {
+        return winningPathList;
+    }
+
 
     /**
      * UC-03 – Kiểm tra nước đi hợp lệ
@@ -118,6 +126,7 @@ public class HexGame {
      * UC-05 – Kiểm tra thắng/thua
      */
     public int checkWinner() {
+        winningPathList.clear();
         if (hasPlayerWon(RED))  return RED;
         if (hasPlayerWon(BLUE)) return BLUE;
         return EMPTY;
@@ -129,6 +138,7 @@ public class HexGame {
     private boolean hasPlayerWon(int player) {
         boolean[][] visited = new boolean[n][n];
         java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
+        int[][][] parent = new int[n][n][2];
         int[][] dirs = {{-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}};
 
         if (player == RED) {
@@ -141,7 +151,10 @@ public class HexGame {
             while (!stack.isEmpty()) {
                 int[] p = stack.pop();
                 int r = p[0], c = p[1];
-                if (r == n - 1) return true;
+                if (r == n - 1) {
+                    reconstructPath(parent, r, c);
+                    return true;
+                }
                 for (int[] d : dirs) {
                     int nr = r + d[0], nc = c + d[1];
                     if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == RED) {
@@ -154,13 +167,17 @@ public class HexGame {
             for (int r = 0; r < n; r++) {
                 if (board[r][0] == BLUE) {
                     visited[r][0] = true;
+                    parent[r][0] = new int[]{-1, -1};
                     stack.push(new int[]{r, 0});
                 }
             }
             while (!stack.isEmpty()) {
                 int[] p = stack.pop();
                 int r = p[0], c = p[1];
-                if (c == n - 1) return true;
+                if (c == n - 1) {
+                    reconstructPath(parent, r, c);
+                    return true;
+                }
                 for (int[] d : dirs) {
                     int nr = r + d[0], nc = c + d[1];
                     if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == BLUE) {
@@ -171,5 +188,24 @@ public class HexGame {
             }
         }
         return false;
+    }
+
+    /**
+     * Hàm phụ trợ truy vết ngược: Đi lùi từ ô đích về ô xuất phát ban đầu
+     * để thu thập chính xác tập hợp tọa độ các ô nằm trên chuỗi chiến thắng.
+     */
+    private void reconstructPath(int[][][] parent, int targetR, int targetC) {
+        int currR = targetR;
+        int currC = targetC;
+
+        while (currR != -1 && currC != -1) {
+            // Thêm vào vị trí số 0 để thu được chuỗi đi xuôi từ Xuất phát -> Đích
+            winningPathList.add(0, new int[]{currR, currC});
+
+            // Lấy ngược tọa độ của ô cha trước đó
+            int[] p = parent[currR][currC];
+            currR = p[0];
+            currC = p[1];
+        }
     }
 }

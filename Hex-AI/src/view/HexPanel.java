@@ -3,6 +3,8 @@ package view;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.List;
 import model.HexGame;
 
 /**
@@ -23,6 +25,9 @@ public class HexPanel extends JPanel {
     private final int OFFSET_X = 80, OFFSET_Y = 80;
     private CellClickListener listener;
     private boolean thinking = false;
+    private int hoverRow = -1, hoverCol = -1;
+    private int lastRow = -1, lastCol = -1;
+    private List<int[]> winningPath = new ArrayList<>();
 
     /**
      * UC-01 – Khởi tạo ván mới (bước 4): chuẩn bị panel hiển thị bàn cờ.
@@ -49,7 +54,50 @@ public class HexPanel extends JPanel {
                 // UC-03 / Alternative flow 4.1.5 / 4.1.8: Click ngoài bàn cờ → pos == null → bỏ qua
                 if (pos != null) listener.onClick(pos[0], pos[1]);
             }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoverRow = -1;
+                hoverCol = -1;
+                repaint();
+            }
         });
+
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (thinking) return; // Khi máy đang nghĩ thì không hover
+
+                int[] pos = findCell(e.getX(), e.getY());
+                if (pos != null) {
+                    // Chỉ vẽ lại (repaint) khi di chuyển sang một ô khác ô cũ
+                    if (hoverRow != pos[0] || hoverCol != pos[1]) {
+                        hoverRow = pos[0];
+                        hoverCol = pos[1];
+                        repaint();
+                    }
+                } else {
+                    // Nếu chuột nằm ở khoảng trống ngoài các ô lục giác
+                    if (hoverRow != -1 || hoverCol != -1) {
+                        hoverRow = -1;
+                        hoverCol = -1;
+                        repaint();
+                    }
+                }
+            }
+        });
+    }
+
+    /** Cập nhật nước đi cuối cùng*/
+    public void setLastMove(int r, int c) {
+        this.lastRow = r;
+        this.lastCol = c;
+        repaint();
+    }
+
+    /** Cập nhật danh sách các ô chiến thắng*/
+    public void setWinningPath(List<int[]> path) {
+        this.winningPath = (path != null) ? path : new ArrayList<>();
+        repaint();
     }
 
     /**
@@ -98,13 +146,43 @@ public class HexPanel extends JPanel {
                 Polygon hex = createHex(x, y, cellSize / 2);
                 hexes[r][c] = hex;
 
+                // HIGHLIGHT ĐƯỜNG CHIẾN THẮNG]
+                boolean isWinningCell = false;
+                for (int[] p : winningPath) {
+                    if (p[0] == r && p[1] == c) {
+                        isWinningCell = true;
+                        break;
+                    }
+                }
+
+                // Logic tô màu nền cho ô cờ
+                if (isWinningCell) {
+                    g2.setColor(new Color(255, 215, 0)); // Màu vàng hoàng kim cho chuỗi thắng
+                } else if (board[r][c] == HexGame.RED) {
+                    g2.setColor(Color.RED);
+                } else if (board[r][c] == HexGame.BLUE) {
+                    g2.setColor(Color.BLUE);
+                } else if (r == hoverRow && c == hoverCol && board[r][c] == HexGame.EMPTY) {
+                    g2.setColor(new Color(200, 200, 200)); // Màu xám sẫm hơn khi di chuột vào ô trống
+                } else {
+                    g2.setColor(Color.LIGHT_GRAY); // Ô trống mặc định
+                }
+                g2.fillPolygon(hex);
+
                 // UC-02 bước 5 / UC-04 bước 6: Tô màu quân cờ vừa đặt
                 if      (board[r][c] == HexGame.RED)  g2.setColor(Color.RED);
                 else if (board[r][c] == HexGame.BLUE) g2.setColor(Color.BLUE);
                 else                                   g2.setColor(Color.LIGHT_GRAY);
 
                 g2.fillPolygon(hex);
-                g2.setColor(Color.BLACK);
+                // [TÍNH NĂNG 1: HIGHLIGHT NƯỚC ĐI CUỐI CÙNG]
+                if (r == lastRow && c == lastCol) {
+                    g2.setColor(new Color(50, 255, 50)); // Viền xanh lá neon cực kỳ nổi bật
+                    g2.setStroke(new BasicStroke(3.5f)); // Viền dày hơn bình thường
+                } else {
+                    g2.setColor(Color.BLACK);
+                    g2.setStroke(new BasicStroke(1f));
+                }
                 g2.drawPolygon(hex);
             }
         }
@@ -121,8 +199,8 @@ public class HexPanel extends JPanel {
         for (int i = 0; i < 6; i++) {
             double ang = Math.PI / 3 * i + Math.PI / 6;
             p.addPoint(
-                (int) Math.round(x + r * Math.cos(ang)),
-                (int) Math.round(y + r * Math.sin(ang))
+                    (int) Math.round(x + r * Math.cos(ang)),
+                    (int) Math.round(y + r * Math.sin(ang))
             );
         }
         return p;
@@ -158,8 +236,6 @@ public class HexPanel extends JPanel {
      */
     private void drawBorders(Graphics2D g2) {
         g2.setStroke(new BasicStroke(5f));
-
-        // Viền đỏ – cạnh Trên và Dưới (mục tiêu của RED)
         g2.setColor(new Color(220, 40, 40));
         for (int c = 0; c < n; c++) {
             Polygon top = hexes[0][c];
