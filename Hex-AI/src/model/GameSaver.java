@@ -16,7 +16,19 @@ public class GameSaver {
      * @throws IOException Nếu có lỗi ghi file
      */
     public static void saveGame(HexGame game, String filePath) throws IOException {
-        throw new UnsupportedOperationException("");
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(filePath))) {
+            int n = game.getSize();
+            writer.println(n);
+            writer.println(game.getCurrent());
+            
+            int[][] board = game.getBoard();
+            for (int r = 0; r < n; r++) {
+                for (int c = 0; c < n; c++) {
+                    writer.print(board[r][c] + " ");
+                }
+                writer.println();
+            }
+        }
     }
 
     /**
