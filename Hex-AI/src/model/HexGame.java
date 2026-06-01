@@ -70,11 +70,11 @@ public class HexGame {
     public Stack<int[]> getMoveHistory() {
         return moveHistory;
     }
+
     // Getter để HexController lấy danh sách ô thắng truyền qua cho HexPanel vẽ màu vàng
     public List<int[]> getWinningPath() {
         return winningPathList;
     }
-
 
     /**
      * UC-03 – Kiểm tra nước đi hợp lệ
