@@ -136,59 +136,103 @@ public class HexGame {
      * DFS Kiểm tra điều kiện nối cạnh.
      */
     private boolean hasPlayerWon(int player) {
-        boolean[][] visited = new boolean[n][n];
-        java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
-        int[][][] parent = new int[n][n][2];
-        int[][] dirs = {{-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}};
+    boolean[][] visited = new boolean[n][n];
+    java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
+    int[][][] parent = new int[n][n][2];
+    int[][] dirs = {{-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}};
 
-        if (player == RED) {
-            for (int c = 0; c < n; c++) {
-                if (board[0][c] == RED) {
-                    visited[0][c] = true;
-                    stack.push(new int[]{0, c});
-                }
+    // Khởi tạo parent = {-1, -1} để tránh truy vết bị lặp vô hạn
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < n; c++) {
+            parent[r][c][0] = -1;
+            parent[r][c][1] = -1;
+        }
+    }
+
+    if (player == RED) {
+        // RED nối từ trên xuống dưới
+        for (int c = 0; c < n; c++) {
+            if (board[0][c] == RED) {
+                visited[0][c] = true;
+                parent[0][c][0] = -1;
+                parent[0][c][1] = -1;
+                stack.push(new int[]{0, c});
             }
-            while (!stack.isEmpty()) {
-                int[] p = stack.pop();
-                int r = p[0], c = p[1];
-                if (r == n - 1) {
-                    reconstructPath(parent, r, c);
-                    return true;
-                }
-                for (int[] d : dirs) {
-                    int nr = r + d[0], nc = c + d[1];
-                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == RED) {
-                        visited[nr][nc] = true;
-                        stack.push(new int[]{nr, nc});
-                    }
-                }
+        }
+
+        while (!stack.isEmpty()) {
+            int[] p = stack.pop();
+            int r = p[0];
+            int c = p[1];
+
+            if (r == n - 1) {
+                reconstructPath(parent, r, c);
+                return true;
             }
-        } else {
-            for (int r = 0; r < n; r++) {
-                if (board[r][0] == BLUE) {
-                    visited[r][0] = true;
-                    parent[r][0] = new int[]{-1, -1};
-                    stack.push(new int[]{r, 0});
-                }
-            }
-            while (!stack.isEmpty()) {
-                int[] p = stack.pop();
-                int r = p[0], c = p[1];
-                if (c == n - 1) {
-                    reconstructPath(parent, r, c);
-                    return true;
-                }
-                for (int[] d : dirs) {
-                    int nr = r + d[0], nc = c + d[1];
-                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == BLUE) {
-                        visited[nr][nc] = true;
-                        stack.push(new int[]{nr, nc});
-                    }
+
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+
+                if (nr >= 0 && nr < n &&
+                    nc >= 0 && nc < n &&
+                    !visited[nr][nc] &&
+                    board[nr][nc] == RED) {
+
+                    visited[nr][nc] = true;
+
+                    // Lưu ô cha để lát nữa truy vết đường thắng
+                    parent[nr][nc][0] = r;
+                    parent[nr][nc][1] = c;
+
+                    stack.push(new int[]{nr, nc});
                 }
             }
         }
-        return false;
+    } else {
+        // BLUE nối từ trái sang phải
+        for (int r = 0; r < n; r++) {
+            if (board[r][0] == BLUE) {
+                visited[r][0] = true;
+                parent[r][0][0] = -1;
+                parent[r][0][1] = -1;
+                stack.push(new int[]{r, 0});
+            }
+        }
+
+        while (!stack.isEmpty()) {
+            int[] p = stack.pop();
+            int r = p[0];
+            int c = p[1];
+
+            if (c == n - 1) {
+                reconstructPath(parent, r, c);
+                return true;
+            }
+
+            for (int[] d : dirs) {
+                int nr = r + d[0];
+                int nc = c + d[1];
+
+                if (nr >= 0 && nr < n &&
+                    nc >= 0 && nc < n &&
+                    !visited[nr][nc] &&
+                    board[nr][nc] == BLUE) {
+
+                    visited[nr][nc] = true;
+
+                    // Lưu ô cha để lát nữa truy vết đường thắng
+                    parent[nr][nc][0] = r;
+                    parent[nr][nc][1] = c;
+
+                    stack.push(new int[]{nr, nc});
+                }
+            }
+        }
     }
+
+    return false;
+}
 
     /**
      * Hàm phụ trợ truy vết ngược: Đi lùi từ ô đích về ô xuất phát ban đầu
