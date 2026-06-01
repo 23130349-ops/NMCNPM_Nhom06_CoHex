@@ -12,8 +12,14 @@ import java.util.Stack;
  * UC-03 Kiểm tra nước đi hợp lệ
  * UC-05 Kiểm tra thắng/thua
  * Tính năng Hoàn nước (Undo) và Lịch sử đánh
+ * * (CẬP NHẬT MỚI):
+ * - Hỗ trợ Serializable để triển khai tính năng Lưu/Tải trận đấu (Save/Load game).
+ * - Tích hợp quản lý dữ liệu thời gian đếm ngược cho mỗi người chơi.
  */
-public class HexGame {
+public class HexGame implements java.io.Serializable {
+    // ID phiên bản để đảm bảo tính nhất quán khi mã hóa/giải mã đối tượng (Serialize)
+    private static final long serialVersionUID = 1L;
+
     public static final int EMPTY = 0;
     public static final int RED   = 1;
     public static final int BLUE  = 2;
@@ -25,6 +31,11 @@ public class HexGame {
 
     // Stack lưu trữ lịch sử các nước đã đi (Mỗi phần tử là mảng int[] chứa {r, c})
     private Stack<int[]> moveHistory;
+
+    // (CẬP NHẬT MỚI): Biến lưu trữ thời gian còn lại của mỗi người chơi (tính bằng giây)
+    // Mặc định ban đầu mỗi bên có 10 phút (600 giây)
+    private int redTimeLeft = 600;
+    private int blueTimeLeft = 600;
 
     /**
      * UC-01 – Khởi tạo ván mới
@@ -48,6 +59,9 @@ public class HexGame {
         copy.current = this.current;
         // Copy lịch sử nước đi cho bản clone
         copy.moveHistory.addAll(this.moveHistory);
+        // Copy dữ liệu thời gian sang bản clone
+        copy.redTimeLeft = this.redTimeLeft;
+        copy.blueTimeLeft = this.blueTimeLeft;
         return copy;
     }
 
@@ -74,6 +88,24 @@ public class HexGame {
     // Getter để HexController lấy danh sách ô thắng truyền qua cho HexPanel vẽ màu vàng
     public List<int[]> getWinningPath() {
         return winningPathList;
+    }
+
+    // (CẬP NHẬT MỚI): Các hàm Getter và Setter để quản lý thời gian của người chơi ĐỎ
+    public int getRedTimeLeft() {
+        return redTimeLeft;
+    }
+
+    public void setRedTimeLeft(int redTimeLeft) {
+        this.redTimeLeft = redTimeLeft;
+    }
+
+    // (CẬP NHẬT MỚI): Các hàm Getter và Setter để quản lý thời gian của người chơi XANH
+    public int getBlueTimeLeft() {
+        return blueTimeLeft;
+    }
+
+    public void setBlueTimeLeft(int blueTimeLeft) {
+        this.blueTimeLeft = blueTimeLeft;
     }
 
     /**
@@ -160,7 +192,7 @@ public class HexGame {
                     int nr = r + d[0], nc = c + d[1];
                     if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == RED) {
                         visited[nr][nc] = true;
-                        parent[nr][nc] = new int[]{r, c};
+                        parent[nr][nc] = new int[]{-1, -1};
                         stack.push(new int[]{nr, nc});
                     }
                 }
@@ -202,10 +234,7 @@ public class HexGame {
         int currC = targetC;
 
         while (currR != -1 && currC != -1) {
-            // Thêm vào vị trí số 0 để thu được chuỗi đi xuôi từ Xuất phát -> Đích
             winningPathList.add(0, new int[]{currR, currC});
-
-            // Lấy ngược tọa độ của ô cha trước đó
             int[] p = parent[currR][currC];
             currR = p[0];
             currC = p[1];
