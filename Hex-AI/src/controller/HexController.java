@@ -33,7 +33,8 @@ public class HexController {
         // UC-07 bước 2: Hiện dialog chọn chế độ chơi
         config = new SetupDialog(null).showDialog();
         // UC-07 Alternative flow 4.1.19: Người chơi không chọn → thoát
-        if (config == null) System.exit(0);
+        if (config == null)
+            System.exit(0);
 
         // Tạo giao diện chính (1 lần duy nhất)
         frame = new HexFrame(config.size);
@@ -51,15 +52,18 @@ public class HexController {
 
     /**
      * TÍNH NĂNG MỚI CẬP NHẬT: Xử lý sự kiện khi người chơi nhấn Undo
-     * - CHỈ hoạt động ở chế độ HUMAN_VS_AI (Lùi 2 bước: bỏ nước AI, bỏ nước người chơi).
+     * - CHỈ hoạt động ở chế độ HUMAN_VS_AI (Lùi 2 bước: bỏ nước AI, bỏ nước người
+     * chơi).
      * - Các chế độ khác nút sẽ bị khóa hoàn toàn từ giao diện, không thể tương tác.
      */
     public void handleUndo() {
-        if (game == null) return;
+        if (game == null)
+            return;
 
         // Chỉ cho phép hoạt động ở chế độ Người vs AI
         if (config.mode == SetupDialog.Mode.HUMAN_VS_AI) {
-            // Ngăn người chơi bấm Undo liên tục khi AI đang suy nghĩ (tránh lỗi luồng xử lý)
+            // Ngăn người chơi bấm Undo liên tục khi AI đang suy nghĩ (tránh lỗi luồng xử
+            // lý)
             Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
             if (!current.isHuman()) {
                 return;
@@ -83,8 +87,9 @@ public class HexController {
         switch (config.mode) {
             case HUMAN_VS_AI:
                 redPlayer = new HumanPlayer(HexGame.RED);
-                bluePlayer = new AIPlayer(HexGame.BLUE, ai);
-// BẬT nút Undo trên giao diện nếu chơi với Máy
+                bluePlayer = new AIPlayer(HexGame.BLUE, ai, config.depth);
+
+                // BẬT nút Undo trên giao diện nếu chơi với Máy
                 frame.getUndoButton().setEnabled(true);
                 break;
             case HUMAN_VS_HUMAN:
@@ -94,8 +99,8 @@ public class HexController {
                 frame.getUndoButton().setEnabled(false);
                 break;
             case AI_VS_AI:
-                redPlayer = new AIPlayer(HexGame.RED, ai);
-                bluePlayer = new AIPlayer(HexGame.BLUE, ai);
+                redPlayer = new AIPlayer(HexGame.RED, ai, config.depth);
+                bluePlayer = new AIPlayer(HexGame.BLUE, ai, config.depth);
                 // TẮT/KHÓA nút Undo trên giao diện nếu xem Máy vs Máy
                 frame.getUndoButton().setEnabled(false);
                 break;
@@ -115,15 +120,18 @@ public class HexController {
      */
     private void handleClick(int r, int c) {
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
-        if (!current.isHuman()) return;
+        if (!current.isHuman())
+            return;
 
-        if (!game.isEmpty(r, c)) return;
+        if (!game.isEmpty(r, c))
+            return;
 
         game.place(r, c, current.getColor());
         panel.setLastMove(r, c);
         panel.repaint();
 
-        if (isGameOver()) return;
+        if (isGameOver())
+            return;
 
         nextTurn();
     }
@@ -132,23 +140,30 @@ public class HexController {
      * Điều phối lượt chơi tiếp theo (bao gồm logic luồng cho AI).
      */
     private void nextTurn() {
-        if (isGameOver()) return;
+        if (isGameOver())
+            return;
 
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         panel.setThinking(!current.isHuman());
 
         if (!current.isHuman()) {
             new Thread(() -> {
-                try { Thread.sleep(400); } catch (InterruptedException ignored) {}
+                try {
+                    Thread.sleep(400);
+                } catch (InterruptedException ignored) {
+                }
 
-                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính toán
-                if (game.getCurrent() != current.getColor()) return;
+                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính
+                // toán
+                if (game.getCurrent() != current.getColor())
+                    return;
 
                 int[] move = current.chooseMove(game);
 
                 SwingUtilities.invokeLater(() -> {
                     // Kiểm tra lại lượt trong luồng UI phòng trường hợp Undo diễn ra cùng lúc
-                    if (game.getCurrent() != current.getColor()) return;
+                    if (game.getCurrent() != current.getColor())
+                        return;
 
                     if (move != null) {
                         game.place(move[0], move[1], current.getColor());
@@ -177,8 +192,7 @@ public class HexController {
                     msg + "\nBạn có muốn chơi lại cùng chế độ?",
                     "Kết thúc ván",
                     JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
-            );
+                    JOptionPane.QUESTION_MESSAGE);
 
             if (choice == JOptionPane.YES_OPTION) {
                 initGame();
