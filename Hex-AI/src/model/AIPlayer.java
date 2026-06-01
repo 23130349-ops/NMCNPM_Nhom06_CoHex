@@ -4,12 +4,13 @@ package model;
  * AIPlayer – Đại diện cho người chơi AI (tự động tính toán nước đi).
  *
  * Liên quan đến Use Case:
- *   UC-04 Tính toán và đặt quân (Màu xanh – AI) – Standard flow 4.1.9
- *   UC-07 Chọn chế độ chơi – Được khởi tạo khi chế độ có AI
+ * UC-04 Tính toán và đặt quân (Màu xanh – AI) – Standard flow 4.1.9
+ * UC-07 Chọn chế độ chơi – Được khởi tạo khi chế độ có AI
  */
 public class AIPlayer implements Player {
     private final int color;
     private final HexAI ai;
+    private final int depth;
 
     /**
      * UC-07 – Chọn chế độ chơi (Standard flow 4.1.18, bước 4)
@@ -18,10 +19,12 @@ public class AIPlayer implements Player {
      * @param color HexGame.RED hoặc HexGame.BLUE
      * @param ai    Engine Minimax + Alpha-Beta dùng chung cho các AIPlayer
      */
-    public AIPlayer(int color, HexAI ai) {
+    public AIPlayer(int color, HexAI ai, int depth) {
         this.color = color;
-        this.ai    = ai;
+        this.ai = ai;
+        this.depth = depth;
     }
+
 
     /** Trả về màu quân cờ của AI. */
     @Override
@@ -31,7 +34,9 @@ public class AIPlayer implements Player {
 
     /**
      * UC-04 – Phân biệt AI với Human.
-     * HexController kiểm tra isHuman() để chuyển sang luồng tính toán AI thay vì chờ click.
+     * HexController kiểm tra isHuman() để chuyển sang luồng tính toán AI thay vì
+     * chờ click.
+     * 
      * @return false – đây là AI, không phải người thật
      */
     @Override
@@ -46,17 +51,18 @@ public class AIPlayer implements Player {
      * 4. Trả về ô hợp lệ tối ưu [row, col]
      *
      * Alternative flow 4.1.10 – Không còn ô hợp lệ:
-     *   HexAI.bestMove() trả về null → HexController không đặt quân → kết thúc trận
+     * HexAI.bestMove() trả về null → HexController không đặt quân → kết thúc trận
      *
      * Alternative flow 4.1.11 – AI vượt quá thời gian xử lý:
-     *   depth = 3 giúp giới hạn thời gian tính toán trong mức chấp nhận được.
-     *   Nếu bàn cờ lớn hoặc cần timeout cứng, có thể giảm depth hoặc thêm timer tại đây.
+     * depth = 3 giúp giới hạn thời gian tính toán trong mức chấp nhận được.
+     * Nếu bàn cờ lớn hoặc cần timeout cứng, có thể giảm depth hoặc thêm timer tại
+     * đây.
      *
      * @param game trạng thái bàn cờ hiện tại
      * @return tọa độ [row, col] tốt nhất, hoặc null nếu không còn ô trống
      */
     @Override
     public int[] chooseMove(HexGame game) {
-        return ai.bestMove(game, 3);
+        return ai.bestMove(game, depth);
     }
 }
