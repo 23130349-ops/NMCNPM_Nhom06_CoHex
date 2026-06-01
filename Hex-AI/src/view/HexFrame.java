@@ -5,58 +5,61 @@ import java.awt.*;
 
 /**
  * HexFrame – Cửa sổ chính chứa toàn bộ giao diện trò chơi.
- * (CẬP NHẬT MỚI):
- * - Tích hợp nút bấm "Lưu Game" và "Tải Game" lên Toolbar.
- * - Bổ sung các JLabel hiển thị đồng hồ đếm ngược thời gian của hai người chơi Đỏ & Xanh.
  */
 public class HexFrame extends JFrame {
     private final HexPanel panel;
     private final JButton undoButton;
     private final JTextArea historyArea;
 
-    // Các thành phần giao diện phục vụ tính năng Lưu/Tải và Đếm thời gian
-    private final JButton saveButton;
-    private final JButton loadButton;
-    private final JLabel lblTimeRed;
-    private final JLabel lblTimeBlue;
+    // TÍNH NĂNG MỚI: Menu File – Save / Load
+    private final JMenuItem saveMenuItem;
+    private final JMenuItem loadMenuItem;
+
+    private JLabel redLabel;
+    private JLabel blueLabel;
+    
+    // Nút lưu/tải của nhóm
+    private JButton btnSave;
+    private JButton btnLoad;
 
     public HexFrame(int n) {
         setTitle("Hex Game");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1250, 1000); // Mở rộng nhẹ chiều rộng để vừa các nút điều khiển mới mà không bị co dòng
+        setSize(1150, 1000); // Mở rộng không gian hiển thị cho panel lịch sử nước đi
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        // --- Tạo thanh JMenuBar với menu File ---
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        saveMenuItem = new JMenuItem("Save Game (File)");
+        loadMenuItem = new JMenuItem("Load Game (File)");
+        fileMenu.add(saveMenuItem);
+        fileMenu.add(loadMenuItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
+        // --- Kết thúc phần Menu ---
+
         // --- Toolbar phía trên (Chứa nút điều khiển) ---
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-
+        JPanel controlPanel = new JPanel();
         undoButton = new JButton("Hoàn nước (Undo)");
+        btnSave = new JButton("Lưu nhanh (Quick Save)");
+        btnLoad = new JButton("Tải nhanh (Quick Load)");
+        
         controlPanel.add(undoButton);
+        controlPanel.add(btnSave);
+        controlPanel.add(btnLoad);
 
-        controlPanel.add(new JSeparator(SwingConstants.VERTICAL));
-
-        // Khởi tạo nút Lưu Game và Tải Game
-        saveButton = new JButton("Lưu Game");
-        loadButton = new JButton("Tải Game");
-        controlPanel.add(saveButton);
-        controlPanel.add(loadButton);
-
-        controlPanel.add(new JSeparator(SwingConstants.VERTICAL));
-
-        // Khởi tạo các nhãn hiển thị thời gian đếm ngược
-        controlPanel.add(new JLabel("Thời gian còn lại: "));
-
-        lblTimeRed = new JLabel(" ĐỎ: 10:00 ");
-        lblTimeRed.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lblTimeRed.setForeground(Color.RED);
-
-        lblTimeBlue = new JLabel(" XANH: 10:00 ");
-        lblTimeBlue.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lblTimeBlue.setForeground(Color.BLUE);
-
-        controlPanel.add(lblTimeRed);
-        controlPanel.add(lblTimeBlue);
-
+        // Hiển thị thời gian
+        redLabel = new JLabel("RED: 10:00");
+        redLabel.setForeground(Color.RED);
+        blueLabel = new JLabel("BLUE: 10:00");
+        blueLabel.setForeground(Color.BLUE);
+        controlPanel.add(new JLabel("  |  "));
+        controlPanel.add(redLabel);
+        controlPanel.add(new JLabel("  -  "));
+        controlPanel.add(blueLabel);
+        
         add(controlPanel, BorderLayout.NORTH);
 
         // --- Bàn cờ trung tâm ---
@@ -76,24 +79,32 @@ public class HexFrame extends JFrame {
 
     public HexPanel getPanel() { return panel; }
     public JButton getUndoButton() { return undoButton; }
-
-    // Các hàm Getter để HexController có thể gắn sự kiện (Listeners) và cập nhật dữ liệu
-    public JButton getBtnSave() { return saveButton; }
-    public JButton getBtnLoad() { return loadButton; }
-    public JLabel getLblTimeRed() { return lblTimeRed; }
-    public JLabel getLblTimeBlue() { return lblTimeBlue; }
-
-    /**
-     * (NHIỆM VỤ NGƯỜI 2): Hàm public để Controller đẩy dữ liệu thời gian (tính bằng giây) xuống hiển thị trên UI
-     */
-    public void setTimerValues(int redSec, int blueSec) {
-        lblTimeRed.setText(String.format(" ĐỎ: %02d:%02d ", redSec / 60, redSec % 60));
-        lblTimeBlue.setText(String.format(" XANH: %02d:%02d ", blueSec / 60, blueSec % 60));
-    }
+    
+    public JButton getBtnSave() { return btnSave; }
+    public JButton getBtnLoad() { return btnLoad; }
 
     /** Cập nhật danh sách text hiển thị lịch sử */
     public void updateHistoryText(String text) {
         historyArea.setText(text);
+    }
+
+    /**
+     * TÍNH NĂNG MỚI: Trả về menu item Save để HexController đăng ký sự kiện.
+     */
+    public JMenuItem getSaveMenuItem() {
+        return saveMenuItem;
+    }
+
+    /**
+     * TÍNH NĂNG MỚI: Trả về menu item Load để HexController đăng ký sự kiện.
+     */
+    public JMenuItem getLoadMenuItem() {
+        return loadMenuItem;
+    }
+
+    public void setTimerValues(int redSecs, int blueSecs) {
+        redLabel.setText(String.format("RED: %02d:%02d", redSecs / 60, redSecs % 60));
+        blueLabel.setText(String.format("BLUE: %02d:%02d", blueSecs / 60, blueSecs % 60));
     }
 
     public void showGameOver(String message) {
