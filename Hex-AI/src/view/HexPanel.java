@@ -11,11 +11,11 @@ import model.HexGame;
  * HexPanel – Panel vẽ bàn cờ và xử lý sự kiện click chuột của người chơi.
  *
  * Liên quan đến Use Case:
- *   UC-01 Khởi tạo ván mới        – setBoard() + repaint() hiển thị bàn cờ mới
- *   UC-02 Đặt quân cờ (Màu đỏ)   – mouseClicked → findCell → CellClickListener.onClick
- *   UC-03 Kiểm tra nước đi hợp lệ – findCell() xác định ô, trả null nếu ngoài phạm vi
- *   UC-04 Đặt quân AI (Màu xanh)  – setThinking(true) khóa tương tác khi AI đang tính
- *   UC-06 Hiển thị kết quả        – repaint() cập nhật giao diện sau mỗi lượt
+ * UC-01 Khởi tạo ván mới        – setBoard() + repaint() hiển thị bàn cờ mới
+ * UC-02 Đặt quân cờ (Màu đỏ)   – mouseClicked → findCell → CellClickListener.onClick
+ * UC-03 Kiểm tra nước đi hợp lệ – findCell() xác định ô, trả null nếu ngoài phạm vi
+ * UC-04 Đặt quân AI (Màu xanh)  – setThinking(true) khóa tương tác khi AI đang tính
+ * UC-06 Hiển thị kết quả        – repaint() cập nhật giao diện sau mỗi lượt
  */
 public class HexPanel extends JPanel {
     private int[][] board;
@@ -32,7 +32,7 @@ public class HexPanel extends JPanel {
     /**
      * UC-01 – Khởi tạo ván mới (bước 4): chuẩn bị panel hiển thị bàn cờ.
      * UC-02 – Đặt quân cờ (Standard flow 4.1.3, bước 1):
-     *   Đăng ký MouseListener để nhận sự kiện click chuột từ người chơi.
+     * Đăng ký MouseListener để nhận sự kiện click chuột từ người chơi.
      *
      * @param n kích thước bàn cờ n×n
      */
@@ -156,6 +156,7 @@ public class HexPanel extends JPanel {
                 }
 
                 // Logic tô màu nền cho ô cờ
+                // UC-02 bước 5 / UC-04 bước 6: Tô màu quân cờ vừa đặt
                 if (isWinningCell) {
                     g2.setColor(new Color(255, 215, 0)); // Màu vàng hoàng kim cho chuỗi thắng
                 } else if (board[r][c] == HexGame.RED) {
@@ -169,12 +170,6 @@ public class HexPanel extends JPanel {
                 }
                 g2.fillPolygon(hex);
 
-                // UC-02 bước 5 / UC-04 bước 6: Tô màu quân cờ vừa đặt
-                if      (board[r][c] == HexGame.RED)  g2.setColor(Color.RED);
-                else if (board[r][c] == HexGame.BLUE) g2.setColor(Color.BLUE);
-                else                                   g2.setColor(Color.LIGHT_GRAY);
-
-                g2.fillPolygon(hex);
                 // [TÍNH NĂNG 1: HIGHLIGHT NƯỚC ĐI CUỐI CÙNG]
                 if (r == lastRow && c == lastCol) {
                     g2.setColor(new Color(50, 255, 50)); // Viền xanh lá neon cực kỳ nổi bật
@@ -211,8 +206,8 @@ public class HexPanel extends JPanel {
      * Xác định ô trên bàn cờ tương ứng với tọa độ pixel (mx, my) của chuột.
      *
      * Alternative flow 4.1.5 / 4.1.8 – Click ngoài phạm vi bàn cờ:
-     *   Không ô nào chứa điểm (mx, my) → trả về null
-     *   → mouseClicked bỏ qua, không gọi listener → trạng thái game không thay đổi
+     * Không ô nào chứa điểm (mx, my) → trả về null
+     * → mouseClicked bỏ qua, không gọi listener → trạng thái game không thay đổi
      *
      * @return [row, col] nếu tìm thấy ô, null nếu click ngoài bàn cờ
      */
@@ -230,8 +225,8 @@ public class HexPanel extends JPanel {
 
     /**
      * Vẽ viền màu cho hai cạnh mục tiêu của mỗi người chơi:
-     *   - Viền đỏ: cạnh Trên (hàng 0) và cạnh Dưới (hàng n-1) → mục tiêu của RED
-     *   - Viền xanh: cạnh Trái (cột 0) và cạnh Phải (cột n-1) → mục tiêu của BLUE
+     * - Viền đỏ: cạnh Trên (hàng 0) và cạnh Dưới (hàng n-1) → mục tiêu của RED
+     * - Viền xanh: cạnh Trái (cột 0) và cạnh Phải (cột n-1) → mục tiêu của BLUE
      * Giúp người chơi nhận biết hướng cần nối (liên quan UC-05 điều kiện thắng).
      */
     private void drawBorders(Graphics2D g2) {
