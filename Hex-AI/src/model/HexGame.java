@@ -145,6 +145,7 @@ public class HexGame {
             for (int c = 0; c < n; c++) {
                 if (board[0][c] == RED) {
                     visited[0][c] = true;
+                    parent[0][c] = new int[]{-1, -1};
                     stack.push(new int[]{0, c});
                 }
             }
@@ -159,6 +160,7 @@ public class HexGame {
                     int nr = r + d[0], nc = c + d[1];
                     if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == RED) {
                         visited[nr][nc] = true;
+                        parent[nr][nc] = new int[]{r, c};
                         stack.push(new int[]{nr, nc});
                     }
                 }
@@ -182,6 +184,7 @@ public class HexGame {
                     int nr = r + d[0], nc = c + d[1];
                     if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == BLUE) {
                         visited[nr][nc] = true;
+                        parent[nr][nc] = new int[]{r, c};
                         stack.push(new int[]{nr, nc});
                     }
                 }

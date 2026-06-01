@@ -170,7 +170,10 @@ public class HexController {
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         if (!current.isHuman()) return;
 
-        if (!game.isEmpty(r, c)) return;
+        if (!game.isEmpty(r, c)) {
+            JOptionPane.showMessageDialog(frame, "Ô đã được đặt", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
         game.place(r, c, current.getColor());
         panel.setLastMove(r, c);
