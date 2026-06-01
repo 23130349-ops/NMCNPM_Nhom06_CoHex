@@ -25,6 +25,7 @@ public class HexController {
     private HexPanel panel;
     private SetupDialog.Config config;
     private final HexAI ai = new HexAI();
+    private GameTimer gameTimer;
 
     /**
      * UC-07 – Chọn chế độ chơi (Standard flow 4.1.18)
@@ -45,8 +46,52 @@ public class HexController {
         // Đăng ký sự kiện cho nút Undo
         frame.getUndoButton().addActionListener(e -> handleUndo());
 
+        // Khởi tạo và liên kết đồng hồ đếm giờ
+        initTimer();
+
         // UC-01 bước 1: Khởi tạo ván đầu tiên
         initGame();
+    }
+
+    /**
+     * Khởi tạo và thiết lập cho hệ thống Đồng hồ tính giờ (Timer).
+     */
+    private void initTimer() {
+        if (config.timerMode == GameTimer.Mode.NONE) {
+            frame.setTimerUIActive(false);
+            return;
+        }
+
+        frame.setTimerUIActive(true);
+        gameTimer = new GameTimer(config.timerMode, config.timerSeconds);
+        gameTimer.setListener(new GameTimer.Listener() {
+            @Override
+            public void onTick(int redSecs, int blueSecs) {
+                int active = (game != null) ? game.getCurrent() : -1;
+                frame.updateTimerDisplay(redSecs, blueSecs, active, config.timerMode);
+            }
+
+            @Override
+            public void onTimeout(int player) {
+                // Nếu là Spectator mode (AI vs AI), chỉ hiển thị xem chứ không báo thua
+                if (config.mode == SetupDialog.Mode.AI_VS_AI) return;
+
+                gameTimer.pause();
+                String loser = (player == HexGame.RED) ? "RED" : "BLUE";
+                String winner = (player == HexGame.RED) ? "BLUE" : "RED";
+
+                // Dialog báo kết quả hết giờ suy nghĩ
+                int choice = JOptionPane.showConfirmDialog(
+                        frame,
+                        "Hết giờ! " + loser + " thua cuộc.\nChiến thắng thuộc về " + winner + "!\n\nBạn có muốn chơi lại?",
+                        "Kết thúc trận đấu",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                if (choice == JOptionPane.YES_OPTION) initGame();
+                else System.exit(0);
+            }
+        });
     }
 
     /**
@@ -71,6 +116,10 @@ public class HexController {
 
             // Cập nhật lại bàn cờ lên giao diện sau khi lùi nước
             panel.repaint();
+
+            if (gameTimer != null) {
+                gameTimer.switchTo(game.getCurrent());
+            }
         }
     }
 
@@ -107,6 +156,10 @@ public class HexController {
         panel.setThinking(false);
         panel.repaint();
 
+        if (gameTimer != null) {
+            gameTimer.reset();
+        }
+
         nextTurn();
     }
 
@@ -136,6 +189,10 @@ public class HexController {
      */
     private void nextTurn() {
         if (isGameOver()) return;
+
+        if (gameTimer != null) {
+            gameTimer.switchTo(game.getCurrent());
+        }
 
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         panel.setThinking(!current.isHuman());
@@ -171,6 +228,9 @@ public class HexController {
     private boolean isGameOver() {
         int winner = game.checkWinner();
         if (winner != HexGame.EMPTY) {
+            if (gameTimer != null) {
+                gameTimer.pause();
+            }
             panel.setWinningPath(game.getWinningPath());
             panel.repaint();
             String msg = (winner == HexGame.RED) ? "RED THẮNG!" : "BLUE THẮNG!";
