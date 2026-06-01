@@ -1,5 +1,7 @@
 package view;
 
+import model.GameTimer;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -27,11 +29,20 @@ public class SetupDialog extends JDialog {
     public static class Config {
         public int  size; // Kích thước bàn cờ (7 / 9 / 11 / 13)
         public Mode mode; // Chế độ chơi được chọn
+        public GameTimer.Mode timerMode = GameTimer.Mode.NONE;
+        public int timerSeconds = 300; // Mặc định 5 phút
     }
 
     private final JComboBox<Integer> sizeBox;
     private final JRadioButton rb1, rb2, rb3;
     private boolean ok = false;
+
+    // Giao diện chọn Timer
+    private JRadioButton rbTimerNone;
+    private JRadioButton rbTimerTotal;
+    private JRadioButton rbTimerPerMove;
+    private JComboBox<String> timeValueBox;
+    private JPanel timeConfigSubPanel;
 
     /**
      * UC-07 – Chọn chế độ chơi (Standard flow 4.1.18, bước 2):
@@ -70,6 +81,51 @@ public class SetupDialog extends JDialog {
         panel.add(rb1);
         panel.add(rb2);
         panel.add(rb3);
+
+        // Tích hợp bộ chọn Timer
+        panel.add(new JLabel("Đồng hồ tính giờ:"));
+
+        rbTimerNone = new JRadioButton("Không dùng", true);
+        rbTimerTotal = new JRadioButton("Tổng ván");
+        rbTimerPerMove = new JRadioButton("Mỗi nước");
+        ButtonGroup timerGroup = new ButtonGroup();
+        timerGroup.add(rbTimerNone);
+        timerGroup.add(rbTimerTotal);
+        timerGroup.add(rbTimerPerMove);
+
+        JPanel timerRadioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        timerRadioPanel.add(rbTimerNone);
+        timerRadioPanel.add(rbTimerTotal);
+        timerRadioPanel.add(rbTimerPerMove);
+        panel.add(timerRadioPanel);
+
+        timeConfigSubPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        timeConfigSubPanel.add(new JLabel("Thời gian:"));
+        timeValueBox = new JComboBox<>();
+        timeConfigSubPanel.add(timeValueBox);
+        timeConfigSubPanel.setVisible(false);
+        panel.add(timeConfigSubPanel);
+
+        rbTimerNone.addActionListener(e -> {
+            timeConfigSubPanel.setVisible(false);
+            pack();
+        });
+        rbTimerTotal.addActionListener(e -> {
+            timeConfigSubPanel.setVisible(true);
+            timeValueBox.setModel(new DefaultComboBoxModel<>(new String[]{
+                    "1 phút", "3 phút", "5 phút (Mặc định)", "10 phút"
+            }));
+            timeValueBox.setSelectedIndex(2);
+            pack();
+        });
+        rbTimerPerMove.addActionListener(e -> {
+            timeConfigSubPanel.setVisible(true);
+            timeValueBox.setModel(new DefaultComboBoxModel<>(new String[]{
+                    "15 giây", "30 giây (Mặc định)", "60 giây", "90 giây"
+            }));
+            timeValueBox.setSelectedIndex(1);
+            pack();
+        });
 
         add(panel, BorderLayout.CENTER);
 
@@ -113,6 +169,26 @@ public class SetupDialog extends JDialog {
         if      (rb1.isSelected()) cfg.mode = Mode.HUMAN_VS_AI;
         else if (rb2.isSelected()) cfg.mode = Mode.HUMAN_VS_HUMAN;
         else                       cfg.mode = Mode.AI_VS_AI;
+
+        // Đăng ký cấu hình Timer
+        if (rbTimerNone.isSelected()) {
+            cfg.timerMode = GameTimer.Mode.NONE;
+        } else if (rbTimerTotal.isSelected()) {
+            cfg.timerMode = GameTimer.Mode.TOTAL_GAME;
+            String selected = (String) timeValueBox.getSelectedItem();
+            if (selected.contains("1 phút")) cfg.timerSeconds = 60;
+            else if (selected.contains("3 phút")) cfg.timerSeconds = 180;
+            else if (selected.contains("5 phút")) cfg.timerSeconds = 300;
+            else if (selected.contains("10 phút")) cfg.timerSeconds = 600;
+        } else if (rbTimerPerMove.isSelected()) {
+            cfg.timerMode = GameTimer.Mode.PER_MOVE;
+            String selected = (String) timeValueBox.getSelectedItem();
+            if (selected.contains("15 giây")) cfg.timerSeconds = 15;
+            else if (selected.contains("30 giây")) cfg.timerSeconds = 30;
+            else if (selected.contains("60 giây")) cfg.timerSeconds = 60;
+            else if (selected.contains("90 giây")) cfg.timerSeconds = 90;
+        }
+
         return cfg;
     }
 }
