@@ -3,6 +3,8 @@ package controller;
 import model.*;
 import view.*;
 import javax.swing.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -45,6 +47,10 @@ public class HexController {
 
         // Đăng ký sự kiện cho nút Undo
         frame.getUndoButton().addActionListener(e -> handleUndo());
+
+        // Đăng ký sự kiện cho menu Save và Load
+        frame.getSaveMenuItem().addActionListener(e -> handleSave());
+        frame.getLoadMenuItem().addActionListener(e -> handleLoad());
 
         // Khởi tạo và liên kết đồng hồ đếm giờ
         initTimer();
@@ -92,6 +98,63 @@ public class HexController {
                 else System.exit(0);
             }
         });
+    }
+
+    /**
+     * Xử lý sự kiện Người chơi nhấn "Save Game".
+     * Mở hộp thoại chọn đường dẫn và ghi trạng thái bàn cờ ra file.
+     */
+    private void handleSave() {
+        if (game == null) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu ván đấu");
+        chooser.setSelectedFile(new File("savegame.txt"));
+        int result = chooser.showSaveDialog(frame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            try {
+                GameSaver.saveGame(game, chooser.getSelectedFile().getAbsolutePath());
+                JOptionPane.showMessageDialog(frame, "Lưu thành công!", "Save Game", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
+     * Xử lý sự kiện Người chơi nhấn "Load Game".
+     * Mở hộp thoại chọn file, đọc và khôi phục lại ván đấu.
+     */
+    private void handleLoad() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Tải ván đấu");
+        int result = chooser.showOpenDialog(frame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            try {
+                HexGame loadedGame = GameSaver.loadGame(chooser.getSelectedFile().getAbsolutePath());
+
+                // Chỉ nạp được file có cùng kích thước bàn cờ
+                if (loadedGame.getSize() != config.size) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Kích thước bàn cờ không khớp! (File: " + loadedGame.getSize() + ", Hiện tại: " + config.size + ")",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                game = loadedGame;
+                panel.setBoard(game.getBoard());
+                panel.setLastMove(-1, -1);
+                panel.setWinningPath(new ArrayList<>());
+                panel.setThinking(false);
+                panel.repaint();
+
+                if (gameTimer != null) gameTimer.reset();
+                nextTurn();
+
+                JOptionPane.showMessageDialog(frame, "Tải ván đấu thành công!", "Load Game", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     /**

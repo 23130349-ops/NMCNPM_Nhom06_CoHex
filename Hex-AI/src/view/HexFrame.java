@@ -19,6 +19,10 @@ public class HexFrame extends JFrame {
     // TÍNH NĂNG MỚI: Nút Hoàn nước
     private final JButton undoButton;
 
+    // TÍNH NĂNG MỚI: Menu File – Save / Load
+    private final JMenuItem saveMenuItem;
+    private final JMenuItem loadMenuItem;
+
     private JLabel redLabel;
     private JLabel blueLabel;
 
@@ -34,6 +38,17 @@ public class HexFrame extends JFrame {
 
         // Sử dụng BorderLayout để chia không gian: Toolbar ở trên, Bàn cờ ở giữa
         setLayout(new BorderLayout());
+
+        // --- Tạo thanh JMenuBar với menu File ---
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        saveMenuItem = new JMenuItem("Save Game");
+        loadMenuItem = new JMenuItem("Load Game");
+        fileMenu.add(saveMenuItem);
+        fileMenu.add(loadMenuItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
+        // --- Kết thúc phần Menu ---
 
         // --- Bắt đầu phần thêm giao diện Undo ---
         JPanel controlPanel = new JPanel();
@@ -71,6 +86,20 @@ public class HexFrame extends JFrame {
      */
     public JButton getUndoButton() {
         return undoButton;
+    }
+
+    /**
+     * TÍNH NĂNG MỚI: Trả về menu item Save để HexController đăng ký sự kiện.
+     */
+    public JMenuItem getSaveMenuItem() {
+        return saveMenuItem;
+    }
+
+    /**
+     * TÍNH NĂNG MỚI: Trả về menu item Load để HexController đăng ký sự kiện.
+     */
+    public JMenuItem getLoadMenuItem() {
+        return loadMenuItem;
     }
 
     /**
