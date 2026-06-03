@@ -244,6 +244,18 @@ public class HexController {
         panel.setThinking(false);
 
         timer = new GameTimer(config.timerMode, config.timerSeconds);
+        timer.setListener(new GameTimer.Listener() {
+            @Override
+            public void onTick(int redSeconds, int blueSeconds) {
+                game.setRedTimeLeft(redSeconds);
+                game.setBlueTimeLeft(blueSeconds);
+                frame.setTimerValues(redSeconds, blueSeconds);
+            }
+
+            @Override
+            public void onTimeout(int player) {
+            }
+        });
         nextTurn();
     }
 
