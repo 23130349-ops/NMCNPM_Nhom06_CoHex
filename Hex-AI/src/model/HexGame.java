@@ -288,4 +288,8 @@ public class HexGame implements java.io.Serializable {
             currC = p[1];
         }
     }
+
+    public void setCurrent(int current) {
+        this.current = current;
+    }
 }
