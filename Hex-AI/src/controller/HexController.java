@@ -49,8 +49,8 @@ public class HexController {
         frame.getLoadMenuItem().addActionListener(e -> handleLoad());
 
         // Đăng ký sự kiện lắng nghe cho bộ đôi nút Lưu và Tải game trực tiếp
-        frame.getBtnSave().addActionListener(e -> handleSaveGame());
-        frame.getBtnLoad().addActionListener(e -> handleLoadGame());
+        frame.getBtnSaveQuick().addActionListener(e -> handleSaveGameQuick());
+        frame.getBtnLoadQuick().addActionListener(e -> handleLoadGameQuick());
 
         // Đăng ký sự kiện cho nút Quay về Menu
         frame.getBtnBackToMenu().addActionListener(e -> handleBackToMenu());
@@ -164,7 +164,7 @@ public class HexController {
     /**
      * Lưu trực tiếp vào file cố định "hex_save.dat" (Nút Quick Save)
      */
-    private void handleSaveGame() {
+    private void handleSaveGameQuick() {
         if (game == null) return;
 
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
@@ -223,7 +223,7 @@ public class HexController {
     /**
      * Tải trực tiếp dữ liệu từ file "hex_save.dat" có sẵn (Nút Quick Load)
      */
-    private void handleLoadGame() {
+    private void handleLoadGameQuick() {
         File file = new File(SAVE_FILE_NAME);
         if (!file.exists()) {
             JOptionPane.showMessageDialog(frame, "Không tìm thấy dữ liệu ván đấu nào được lưu trước đó!", "Lỗi", JOptionPane.WARNING_MESSAGE);
