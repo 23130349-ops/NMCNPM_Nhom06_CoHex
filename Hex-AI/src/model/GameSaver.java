@@ -10,7 +10,7 @@ public class GameSaver {
 
     /**
      * Lưu trạng thái ván đấu hiện tại ra file.
-     * 
+     *
      * @param game Trạng thái game cần lưu
      * @param filePath Đường dẫn file lưu
      * @throws IOException Nếu có lỗi ghi file
@@ -44,7 +44,7 @@ public class GameSaver {
 
     /**
      * Đọc trạng thái ván đấu từ file và tái tạo lại đối tượng HexGame.
-     * 
+     *
      * @param filePath Đường dẫn file cần đọc
      * @return Đối tượng HexGame đã được phục hồi
      * @throws IOException Nếu có lỗi đọc file
@@ -57,29 +57,27 @@ public class GameSaver {
             int blueTime = Integer.parseInt(reader.readLine().trim());
 
             HexGame game = new HexGame(n);
-            game.setCurrent(current);
             game.setRedTimeLeft(redTime);
             game.setBlueTimeLeft(blueTime);
 
-            // Bỏ qua phần đọc ma trận (vì ta sẽ dùng place() để dựng lại)
-            for (int i = 0; i < n; i++) reader.readLine();
-
-            // Đọc lịch sử nước đi
+            // Đọc trực tiếp ma trận bàn cờ vào board[][]
+            int[][] board = game.getBoard();
+            for (int r = 0; r < n; r++) {
+                String[] cells = reader.readLine().trim().split("\\s+");
+                for (int c = 0; c < n; c++) {
+                    board[r][c] = Integer.parseInt(cells[c]);
+                }
+            }
+            // Push trực tiếp tọa độ vào lịch sử
             int historySize = Integer.parseInt(reader.readLine().trim());
+            java.util.Stack<int[]> history = game.getMoveHistory();
             for (int i = 0; i < historySize; i++) {
-                String[] parts = reader.readLine().trim().split(" ");
+                String[] parts = reader.readLine().trim().split("\\s+");
                 int r = Integer.parseInt(parts[0]);
                 int c = Integer.parseInt(parts[1]);
-
-                // Dùng place để khôi phục bàn cờ.
-                // Lưu ý: Xác định màu dựa trên lượt (i chẵn = ĐỎ, lẻ = XANH)
-                int color = (i % 2 == 0) ? HexGame.RED : HexGame.BLUE;
-                game.place(r, c, color);
+                history.push(new int[]{r, c});
             }
-
-            // Đảm bảo lượt đi hiện tại khớp với file lưu
             game.setCurrent(current);
-
             return game;
         } catch (Exception e) {
             throw new IOException("Định dạng file lưu không hợp lệ!", e);
