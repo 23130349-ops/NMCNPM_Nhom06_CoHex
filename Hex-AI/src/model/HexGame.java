@@ -8,16 +8,12 @@ import java.util.Stack;
  * HexGame – Mô hình dữ liệu chính của trò chơi Hex.
  * Liên quan đến các Use Case:
  * UC-01 Khởi tạo ván mới
- * UC-02 Đặt quân cờ (Màu đỏ)
+ * UC-02 Đặt quân cờ
  * UC-03 Kiểm tra nước đi hợp lệ
  * UC-05 Kiểm tra thắng/thua
- * Tính năng Hoàn nước (Undo) và Lịch sử đánh
- * * (CẬP NHẬT MỚI):
- * - Hỗ trợ Serializable để triển khai tính năng Lưu/Tải trận đấu (Save/Load game).
- * - Tích hợp quản lý dữ liệu thời gian đếm ngược cho mỗi người chơi.
+ * Tính năng Hoàn nước (Undo), Lịch sử đánh, Save/Load và thời gian.
  */
 public class HexGame implements java.io.Serializable {
-    // ID phiên bản để đảm bảo tính nhất quán khi mã hóa/giải mã đối tượng (Serialize)
     private static final long serialVersionUID = 1L;
 
     public static final int EMPTY = 0;
@@ -29,11 +25,10 @@ public class HexGame implements java.io.Serializable {
     private int current;
     private List<int[]> winningPathList = new ArrayList<>();
 
-    // Stack lưu trữ lịch sử các nước đã đi (Mỗi phần tử là mảng int[] chứa {r, c})
+    // Stack lưu trữ lịch sử các nước đã đi, mỗi phần tử là {r, c}
     private Stack<int[]> moveHistory;
 
-    // (CẬP NHẬT MỚI): Biến lưu trữ thời gian còn lại của mỗi người chơi (tính bằng giây)
-    // Mặc định ban đầu mỗi bên có 10 phút (600 giây)
+    // Thời gian còn lại của mỗi người chơi, tính bằng giây
     private int redTimeLeft = 600;
     private int blueTimeLeft = 600;
 
@@ -42,26 +37,27 @@ public class HexGame implements java.io.Serializable {
      */
     public HexGame(int n) {
         this.n = n;
-        this.board = new int[n][n]; // tất cả ô mặc định = 0 (EMPTY)
+        this.board = new int[n][n];
         this.current = RED;
-        this.moveHistory = new Stack<>(); // Khởi tạo Stack
+        this.moveHistory = new Stack<>();
     }
 
     /**
-     * Tạo bản sao sâu (deep copy) của trạng thái bàn cờ hiện tại.
+     * Tạo bản sao sâu của trạng thái bàn cờ hiện tại.
      * Dùng trong HexAI.bestMove() để duyệt cây game mà không ảnh hưởng bàn cờ gốc.
      */
     public HexGame copy() {
         HexGame copy = new HexGame(n);
+
         for (int i = 0; i < n; i++) {
             System.arraycopy(board[i], 0, copy.board[i], 0, n);
         }
+
         copy.current = this.current;
-        // Copy lịch sử nước đi cho bản clone
         copy.moveHistory.addAll(this.moveHistory);
-        // Copy dữ liệu thời gian sang bản clone
         copy.redTimeLeft = this.redTimeLeft;
         copy.blueTimeLeft = this.blueTimeLeft;
+
         return copy;
     }
 
@@ -70,12 +66,12 @@ public class HexGame implements java.io.Serializable {
         return n;
     }
 
-    /** Trả về mảng bàn cờ (dùng cho giao diện và AI). */
+    /** Trả về mảng bàn cờ. */
     public int[][] getBoard() {
         return board;
     }
 
-    /** Trả về màu của người chơi đang đến lượt (RED hoặc BLUE). */
+    /** Trả về màu của người chơi đang đến lượt. */
     public int getCurrent() {
         return current;
     }
@@ -85,12 +81,11 @@ public class HexGame implements java.io.Serializable {
         return moveHistory;
     }
 
-    // Getter để HexController lấy danh sách ô thắng truyền qua cho HexPanel vẽ màu vàng
+    /** Trả về danh sách ô thuộc đường chiến thắng. */
     public List<int[]> getWinningPath() {
         return winningPathList;
     }
 
-    // (CẬP NHẬT MỚI): Các hàm Getter và Setter để quản lý thời gian của người chơi ĐỎ
     public int getRedTimeLeft() {
         return redTimeLeft;
     }
@@ -99,7 +94,6 @@ public class HexGame implements java.io.Serializable {
         this.redTimeLeft = redTimeLeft;
     }
 
-    // (CẬP NHẬT MỚI): Các hàm Getter và Setter để quản lý thời gian của người chơi XANH
     public int getBlueTimeLeft() {
         return blueTimeLeft;
     }
@@ -109,125 +103,178 @@ public class HexGame implements java.io.Serializable {
     }
 
     /**
-     * UC-03 – Kiểm tra nước đi hợp lệ
+     * UC-03 – Kiểm tra nước đi hợp lệ.
      */
     public boolean isEmpty(int r, int c) {
         return board[r][c] == EMPTY;
     }
 
     /**
-     * UC-02 & UC-04 – Đặt quân cờ
+     * UC-02 & UC-04 – Đặt quân cờ.
      */
     public boolean place(int r, int c, int player) {
         if (board[r][c] != EMPTY) {
             return false;
         }
-        board[r][c] = player;
 
-        // Đẩy tọa độ nước đi vào Stack lịch sử
+        board[r][c] = player;
         moveHistory.push(new int[]{r, c});
 
-        // Chuyển lượt sau khi đặt quân thành công
         current = (player == RED) ? BLUE : RED;
+
         return true;
     }
 
     /**
-     * Tính năng Hoàn nước (Undo)
-     * Lấy nước đi cuối cùng ra khỏi Stack, đặt lại ô về EMPTY và lùi lượt chơi.
+     * Hoàn nước.
      * @return true nếu undo thành công, false nếu không còn nước nào để undo.
      */
     public boolean undo() {
         if (moveHistory.isEmpty()) {
-            return false; // Không có gì để Undo
+            return false;
         }
+
         int[] lastMove = moveHistory.pop();
         int r = lastMove[0];
         int c = lastMove[1];
 
-        // Set ô đó về EMPTY
         board[r][c] = EMPTY;
 
-        // Lùi lượt chơi (đổi lại current)
         current = (current == RED) ? BLUE : RED;
 
         return true;
     }
 
     /**
-     * UC-05 – Kiểm tra thắng/thua
+     * UC-05 – Kiểm tra thắng/thua.
      */
     public int checkWinner() {
         winningPathList.clear();
-        if (hasPlayerWon(RED))  return RED;
-        if (hasPlayerWon(BLUE)) return BLUE;
+
+        if (hasPlayerWon(RED)) {
+            return RED;
+        }
+
+        if (hasPlayerWon(BLUE)) {
+            return BLUE;
+        }
+
         return EMPTY;
     }
 
     /**
-     * DFS Kiểm tra điều kiện nối cạnh.
+     * DFS kiểm tra điều kiện nối cạnh.
+     * RED nối từ trên xuống dưới.
+     * BLUE nối từ trái sang phải.
      */
     private boolean hasPlayerWon(int player) {
         boolean[][] visited = new boolean[n][n];
         java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
         int[][][] parent = new int[n][n][2];
-        int[][] dirs = {{-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}};
+        int[][] dirs = {
+                {-1, 0},
+                {-1, 1},
+                {0, -1},
+                {0, 1},
+                {1, -1},
+                {1, 0}
+        };
+
+        // Khởi tạo parent = {-1, -1} để tránh truy vết bị lặp vô hạn
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                parent[r][c][0] = -1;
+                parent[r][c][1] = -1;
+            }
+        }
 
         if (player == RED) {
+            // RED nối từ trên xuống dưới
             for (int c = 0; c < n; c++) {
                 if (board[0][c] == RED) {
                     visited[0][c] = true;
-                    parent[0][c] = new int[]{-1, -1};
+                    parent[0][c][0] = -1;
+                    parent[0][c][1] = -1;
                     stack.push(new int[]{0, c});
                 }
             }
+
             while (!stack.isEmpty()) {
                 int[] p = stack.pop();
-                int r = p[0], c = p[1];
+                int r = p[0];
+                int c = p[1];
+
                 if (r == n - 1) {
                     reconstructPath(parent, r, c);
                     return true;
                 }
+
                 for (int[] d : dirs) {
-                    int nr = r + d[0], nc = c + d[1];
-                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == RED) {
+                    int nr = r + d[0];
+                    int nc = c + d[1];
+
+                    if (nr >= 0 && nr < n &&
+                            nc >= 0 && nc < n &&
+                            !visited[nr][nc] &&
+                            board[nr][nc] == RED) {
+
                         visited[nr][nc] = true;
-                        parent[nr][nc] = new int[]{-1, -1};
+
+                        // Lưu ô cha để truy vết đường thắng
+                        parent[nr][nc][0] = r;
+                        parent[nr][nc][1] = c;
+
                         stack.push(new int[]{nr, nc});
                     }
                 }
             }
         } else {
+            // BLUE nối từ trái sang phải
             for (int r = 0; r < n; r++) {
                 if (board[r][0] == BLUE) {
                     visited[r][0] = true;
-                    parent[r][0] = new int[]{-1, -1};
+                    parent[r][0][0] = -1;
+                    parent[r][0][1] = -1;
                     stack.push(new int[]{r, 0});
                 }
             }
+
             while (!stack.isEmpty()) {
                 int[] p = stack.pop();
-                int r = p[0], c = p[1];
+                int r = p[0];
+                int c = p[1];
+
                 if (c == n - 1) {
                     reconstructPath(parent, r, c);
                     return true;
                 }
+
                 for (int[] d : dirs) {
-                    int nr = r + d[0], nc = c + d[1];
-                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc] && board[nr][nc] == BLUE) {
+                    int nr = r + d[0];
+                    int nc = c + d[1];
+
+                    if (nr >= 0 && nr < n &&
+                            nc >= 0 && nc < n &&
+                            !visited[nr][nc] &&
+                            board[nr][nc] == BLUE) {
+
                         visited[nr][nc] = true;
-                        parent[nr][nc] = new int[]{r, c};
+
+                        // Lưu ô cha để truy vết đường thắng
+                        parent[nr][nc][0] = r;
+                        parent[nr][nc][1] = c;
+
                         stack.push(new int[]{nr, nc});
                     }
                 }
             }
         }
+
         return false;
     }
 
     /**
-     * Hàm phụ trợ truy vết ngược: Đi lùi từ ô đích về ô xuất phát ban đầu
-     * để thu thập chính xác tập hợp tọa độ các ô nằm trên chuỗi chiến thắng.
+     * Truy vết ngược từ ô đích về ô xuất phát để lấy đường thắng.
      */
     private void reconstructPath(int[][][] parent, int targetR, int targetC) {
         int currR = targetR;
@@ -235,6 +282,7 @@ public class HexGame implements java.io.Serializable {
 
         while (currR != -1 && currC != -1) {
             winningPathList.add(0, new int[]{currR, currC});
+
             int[] p = parent[currR][currC];
             currR = p[0];
             currC = p[1];
