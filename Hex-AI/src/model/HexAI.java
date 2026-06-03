@@ -37,26 +37,55 @@ public class HexAI {
     return System.currentTimeMillis() - startTime >= timeLimitMs * 0.9;
     }
     public int[] bestMove(HexGame game, int depth) {
-        int bestVal = -INF;
-        int[] best  = null;
-        int alpha   = -INF;
-        int beta    = INF;
+    startTime = System.currentTimeMillis();
+    timeLimitMs = 15_000; // AI tối đa 15 giây
+    timeout = false;
+    bestMoveSoFar = null;
 
-        // UC-04 bước 2: Lấy danh sách nước đi khả thi (đã sắp xếp theo độ gần trung tâm)
-        for (int[] move : getOrderedMoves(game)) {
-            HexGame child = game.copy();
-            child.place(move[0], move[1], HexGame.BLUE);
-            // UC-04 bước 3: Gọi Minimax + Alpha-Beta để đánh giá nước đi
-            int val = minimax(child, false, depth - 1, alpha, beta);
-            if (val > bestVal) {
-                bestVal = val;
-                best    = move;
-            }
-            alpha = Math.max(alpha, bestVal);
+    int bestVal = -INF;
+    int[] best = null;
+    int alpha = -INF;
+    int beta = INF;
+
+    for (int[] move : getOrderedMoves(game)) {
+        if (isTimeAlmostUp()) {
+            timeout = true;
+            break;
         }
-        // UC-04 bước 4: Trả về nước đi tốt nhất (hoặc null – Alternative flow 4.1.10)
+
+        HexGame child = game.copy();
+        child.place(move[0], move[1], HexGame.BLUE);
+
+        int val = minimax(child, false, depth - 1, alpha, beta);
+
+        if (timeout) {
+            break;
+        }
+
+        if (val > bestVal) {
+            bestVal = val;
+            best = move;
+            bestMoveSoFar = move;
+        }
+
+        alpha = Math.max(alpha, bestVal);
+    }
+
+    if (best != null) {
         return best;
     }
+
+    if (bestMoveSoFar != null) {
+        return bestMoveSoFar;
+    }
+
+    List<int[]> moves = getOrderedMoves(game);
+    if (!moves.isEmpty()) {
+        return moves.get(0);
+    }
+
+    return null;
+}
 
     /**
      * UC-04 – Standard flow 4.1.9, bước 3
