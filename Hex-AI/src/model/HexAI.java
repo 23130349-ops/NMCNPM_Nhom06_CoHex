@@ -10,7 +10,11 @@ import java.util.*;
 public class HexAI {
     private final int INF = 1_000_000_000;
     private final int WIN = 100_000;
-
+    
+    private long startTime;
+    private long timeLimitMs;
+    private boolean timeout;
+    private int[] bestMoveSoFar;
     /**
      * UC-04 – Standard flow 4.1.9, bước 2-4
      * 2. AI phân tích các nước đi khả thi (getOrderedMoves – ưu tiên ô trung tâm)
@@ -29,6 +33,9 @@ public class HexAI {
      * @param depth độ sâu tìm kiếm Minimax
      * @return nước đi tối ưu [row, col], hoặc null nếu không còn ô nào
      */
+    private boolean isTimeAlmostUp() {
+    return System.currentTimeMillis() - startTime >= timeLimitMs * 0.9;
+    }
     public int[] bestMove(HexGame game, int depth) {
         int bestVal = -INF;
         int[] best  = null;
