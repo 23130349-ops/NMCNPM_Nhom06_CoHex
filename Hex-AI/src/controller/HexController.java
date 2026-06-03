@@ -26,8 +26,8 @@ public class HexController {
     private SetupDialog.Config config;
     private final HexAI ai = new HexAI();
 
-    // Đối tượng điều khiển vòng lặp đếm ngược thời gian mỗi giây
-    private Timer countdownTimer;
+    // Đối tượng điều khiển vòng lặp đếm ngược thời gian
+    private GameTimer timer;
 
     // Tên file lưu trữ cố định ngay trong thư mục dự án
     private static final String SAVE_FILE_NAME = "hex_save.dat";
@@ -72,8 +72,8 @@ public class HexController {
 
         if (choice == JOptionPane.YES_OPTION) {
             // Dừng đồng hồ đếm ngược để chặn không cho nó chạy ngầm
-            if (countdownTimer != null) {
-                countdownTimer.stop();
+            if (timer != null) {
+                timer.pause();
             }
 
             // Tiêu hủy hoàn toàn cửa sổ trận đấu cũ
@@ -84,60 +84,7 @@ public class HexController {
         }
     }
 
-    /**
-     * Khởi động luồng đếm ngược thời gian cho người chơi hiện tại
-     */
-    private void startCountdown() {
-        if (countdownTimer != null) {
-            countdownTimer.stop();
-        }
 
-        // Nếu người chơi chọn "Không dùng", ta thoát luôn hàm, không chạy Timer nữa.
-        if (config.timerMode == GameTimer.Mode.NONE) {
-            frame.setTimerValues(0, 0);
-            return;
-        }
-
-        countdownTimer = new Timer(1000, (ActionEvent e) -> {
-            if (game == null || isGameOverLogicCheck()) {
-                countdownTimer.stop();
-                return;
-            }
-
-            if (game.getCurrent() == HexGame.RED) {
-                game.setRedTimeLeft(game.getRedTimeLeft() - 1);
-            } else {
-                game.setBlueTimeLeft(game.getBlueTimeLeft() - 1);
-            }
-
-            // Gọi hàm public của frame theo đúng yêu cầu đề bài thiết kế UI
-            frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-
-            if (game.getRedTimeLeft() <= 0) {
-                countdownTimer.stop();
-                panel.setThinking(true);
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "Người chơi ĐỎ đã hết thời gian! XANH giành chiến thắng.",
-                        "Hết giờ",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-                handleBackToMenu();
-            } else if (game.getBlueTimeLeft() <= 0) {
-                countdownTimer.stop();
-                panel.setThinking(true);
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "Người chơi XANH đã hết thời gian! ĐỎ giành chiến thắng.",
-                        "Hết giờ",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-                handleBackToMenu();
-            }
-        });
-
-        countdownTimer.start();
-    }
 
     /**
      * Xử lý sự kiện Người chơi nhấn "Save Game" (Menu).
@@ -209,7 +156,6 @@ public class HexController {
                 // Đồng bộ thời gian và danh sách nước đi
                 syncUI();
                 frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-                startCountdown();
 
                 nextTurn();
 
@@ -239,7 +185,7 @@ public class HexController {
             // Đẩy dữ liệu thời gian từ game vừa load xuống Frame qua hàm public
             frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
 
-            startCountdown();
+
             nextTurn();
 
             JOptionPane.showMessageDialog(frame, "Đã khôi phục lại ván game thành công!", "Tải Game", JOptionPane.INFORMATION_MESSAGE);
@@ -297,17 +243,7 @@ public class HexController {
         syncUI();
         panel.setThinking(false);
 
-        // Sử dụng config.timerSeconds thay vì số cố định
-        game.setRedTimeLeft(config.timerSeconds);
-        game.setBlueTimeLeft(config.timerSeconds);
-
-        if (config.timerMode == GameTimer.Mode.NONE) {
-            frame.setTimerValues(0, 0);
-        } else {
-            frame.setTimerValues(config.timerSeconds, config.timerSeconds);
-        }
-
-        startCountdown();
+        timer = new GameTimer(config.timerMode, config.timerSeconds);
         nextTurn();
     }
 
@@ -429,8 +365,8 @@ public class HexController {
     private boolean isGameOver() {
         int winner = game.checkWinner();
         if (winner != HexGame.EMPTY) {
-            if (countdownTimer != null) {
-                countdownTimer.stop();
+            if (timer != null) {
+                timer.pause();
             }
 
             panel.setWinningPath(game.getWinningPath());
@@ -448,8 +384,8 @@ public class HexController {
             if (choice == JOptionPane.YES_OPTION) {
                 initGame();
             } else {
-                if (countdownTimer != null) {
-                    countdownTimer.stop();
+                if (timer != null) {
+                    timer.pause();
                 }
 
                 frame.dispose();
