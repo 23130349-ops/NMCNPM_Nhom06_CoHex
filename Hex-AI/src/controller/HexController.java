@@ -3,7 +3,7 @@ package controller;
 import model.*;
 import view.*;
 import javax.swing.*;
-import javax.swing.Timer;
+
 import java.awt.event.ActionEvent;
 import java.io.*;
 import java.util.ArrayList;
@@ -13,8 +13,10 @@ import java.util.Stack;
  * HexController – Bộ điều khiển trung tâm liên kết dữ liệu Model và View.
  * (CẬP NHẬT MỚI):
  * - Triển khai javax.swing.Timer xử lý đếm ngược thời gian theo thời gian thực.
- * - Xử lý Lưu/Tải trực tiếp vào file cố định "hex_save.dat" không qua JFileChooser.
- * - Cập nhật đồng bộ nhãn hiển thị thời gian lên UI mỗi giây hoặc khi đổi trạng thái game.
+ * - Xử lý Lưu/Tải trực tiếp vào file cố định "hex_save.dat" không qua
+ * JFileChooser.
+ * - Cập nhật đồng bộ nhãn hiển thị thời gian lên UI mỗi giây hoặc khi đổi trạng
+ * thái game.
  * - Xử lý quay về Menu chính an toàn, không làm tràn RAM.
  */
 public class HexController {
@@ -67,8 +69,7 @@ public class HexController {
                 "Bạn có chắc muốn kết thúc ván đấu hiện tại và quay về Menu?",
                 "Xác nhận thoát",
                 JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
+                JOptionPane.QUESTION_MESSAGE);
 
         if (choice == JOptionPane.YES_OPTION) {
             // Dừng đồng hồ đếm ngược để chặn không cho nó chạy ngầm
@@ -120,8 +121,7 @@ public class HexController {
                         frame,
                         "Người chơi ĐỎ đã hết thời gian! XANH giành chiến thắng.",
                         "Hết giờ",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                        JOptionPane.INFORMATION_MESSAGE);
                 handleBackToMenu();
             } else if (game.getBlueTimeLeft() <= 0) {
                 countdownTimer.stop();
@@ -130,8 +130,7 @@ public class HexController {
                         frame,
                         "Người chơi XANH đã hết thời gian! ĐỎ giành chiến thắng.",
                         "Hết giờ",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                        JOptionPane.INFORMATION_MESSAGE);
                 handleBackToMenu();
             }
         });
@@ -144,7 +143,8 @@ public class HexController {
      * Mở hộp thoại chọn đường dẫn và ghi trạng thái bàn cờ ra file.
      */
     private void handleSave() {
-        if (game == null) return;
+        if (game == null)
+            return;
 
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Lưu ván đấu");
@@ -165,13 +165,16 @@ public class HexController {
      * Lưu trực tiếp vào file cố định "hex_save.dat" (Nút Quick Save)
      */
     private void handleSaveGame() {
-        if (game == null) return;
+        if (game == null)
+            return;
 
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
             oos.writeObject(game);
-            JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game",
+                    JOptionPane.INFORMATION_MESSAGE);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -192,10 +195,10 @@ public class HexController {
                 if (loadedGame.getSize() != config.size) {
                     JOptionPane.showMessageDialog(
                             frame,
-                            "Kích thước bàn cờ không khớp! (File: " + loadedGame.getSize() + ", Hiện tại: " + config.size + ")",
+                            "Kích thước bàn cờ không khớp! (File: " + loadedGame.getSize() + ", Hiện tại: "
+                                    + config.size + ")",
                             "Lỗi",
-                            JOptionPane.ERROR_MESSAGE
-                    );
+                            JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -213,7 +216,8 @@ public class HexController {
 
                 nextTurn();
 
-                JOptionPane.showMessageDialog(frame, "Tải ván đấu thành công!", "Load Game", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Tải ván đấu thành công!", "Load Game",
+                        JOptionPane.INFORMATION_MESSAGE);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
@@ -226,7 +230,8 @@ public class HexController {
     private void handleLoadGame() {
         File file = new File(SAVE_FILE_NAME);
         if (!file.exists()) {
-            JOptionPane.showMessageDialog(frame, "Không tìm thấy dữ liệu ván đấu nào được lưu trước đó!", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(frame, "Không tìm thấy dữ liệu ván đấu nào được lưu trước đó!", "Lỗi",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -242,7 +247,8 @@ public class HexController {
             startCountdown();
             nextTurn();
 
-            JOptionPane.showMessageDialog(frame, "Đã khôi phục lại ván game thành công!", "Tải Game", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(frame, "Đã khôi phục lại ván game thành công!", "Tải Game",
+                    JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(frame, "Lỗi khi đọc dữ liệu file lưu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
@@ -253,17 +259,50 @@ public class HexController {
      * Trong chế độ đánh với máy, lùi lại 2 nước để trả lượt về cho người chơi.
      */
     public void handleUndo() {
-        if (game == null) return;
+        if (game == null)
+            return;
 
         if (config.mode == SetupDialog.Mode.HUMAN_VS_AI) {
             Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
-            if (!current.isHuman()) return;
+
+            // Chỉ cho Undo khi đang tới lượt người chơi
+            if (!current.isHuman()) {
+                return;
+            }
+
+            // Người vs AI cần lùi 2 nước: nước của AI và nước của người chơi
+            if (game.getMoveHistory().size() < 2) {
+                JOptionPane.showMessageDialog(
+                        frame,
+                        "Không còn đủ nước đi để hoàn tác!",
+                        "Undo",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
             game.undo();
             game.undo();
+
+            // Reset thời gian của người đang tới lượt sau khi Undo
+            resetCurrentTurnTimerAfterUndo();
+
+            panel.setThinking(false);
+            panel.setWinningPath(null);
 
             syncUI();
             frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+        }
+    }
+
+    private void resetCurrentTurnTimerAfterUndo() {
+        if (config.timerMode != GameTimer.Mode.PER_MOVE) {
+            return;
+        }
+
+        if (game.getCurrent() == HexGame.RED) {
+            game.setRedTimeLeft(config.timerSeconds);
+        } else if (game.getCurrent() == HexGame.BLUE) {
+            game.setBlueTimeLeft(config.timerSeconds);
         }
     }
 
@@ -337,7 +376,8 @@ public class HexController {
             return;
         }
 
-        // Nếu là chế độ tính giờ mỗi nước, ta phải reset quỹ thời gian của 2 bên về ban đầu
+        // Nếu là chế độ tính giờ mỗi nước, ta phải reset quỹ thời gian của 2 bên về ban
+        // đầu
         if (config.timerMode == GameTimer.Mode.PER_MOVE) {
             game.setRedTimeLeft(config.timerSeconds);
             game.setBlueTimeLeft(config.timerSeconds);
@@ -354,7 +394,8 @@ public class HexController {
                 } catch (InterruptedException ignored) {
                 }
 
-                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính toán
+                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính
+                // toán
                 if (game.getCurrent() != current.getColor()) {
                     return;
                 }
@@ -384,8 +425,7 @@ public class HexController {
                                 frame,
                                 "Không còn nước đi hợp lệ!",
                                 "Kết thúc ván",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
+                                JOptionPane.INFORMATION_MESSAGE);
                     }
                 });
             }).start();
@@ -442,8 +482,7 @@ public class HexController {
                     msg + "\nBạn có muốn chơi lại cùng chế độ?",
                     "Kết thúc ván",
                     JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
-            );
+                    JOptionPane.QUESTION_MESSAGE);
 
             if (choice == JOptionPane.YES_OPTION) {
                 initGame();
