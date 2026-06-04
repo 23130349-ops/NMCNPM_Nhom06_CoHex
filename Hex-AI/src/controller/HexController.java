@@ -3,8 +3,6 @@ package controller;
 import model.*;
 import view.*;
 import javax.swing.*;
-import javax.swing.Timer;
-import java.awt.event.ActionEvent;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Stack;
@@ -28,6 +26,9 @@ public class HexController {
 
     // Đối tượng điều khiển vòng lặp đếm ngược thời gian
     private GameTimer timer;
+
+    // Trạng thái hiển thị Dialog lưu game để điều phối luồng AI
+    private volatile boolean isDialogActive = false;
 
     // Tên file lưu trữ cố định ngay trong thư mục dự án
     private static final String SAVE_FILE_NAME = "hex_save.dat";
@@ -93,17 +94,32 @@ public class HexController {
     private void handleSave() {
         if (game == null) return;
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Lưu ván đấu");
-        chooser.setSelectedFile(new File("savegame.txt"));
+        isDialogActive = true;
+        if (timer != null) {
+            timer.pause();
+        }
 
-        int result = chooser.showSaveDialog(frame);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            try {
-                GameSaver.saveGame(game, chooser.getSelectedFile().getAbsolutePath());
-                JOptionPane.showMessageDialog(frame, "Lưu thành công!", "Save Game", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        try {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Lưu ván đấu");
+            chooser.setSelectedFile(new File("savegame.txt"));
+
+            int result = chooser.showSaveDialog(frame);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                try {
+                    GameSaver.saveGame(game, chooser.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(frame, "Lưu thành công!", "Save Game", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } finally {
+            isDialogActive = false;
+            if (timer != null) {
+                Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
+                if (!current.isHuman()) {
+                    timer.resume();
+                }
             }
         }
     }
@@ -114,11 +130,26 @@ public class HexController {
     private void handleSaveGame() {
         if (game == null) return;
 
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
-            oos.writeObject(game);
-            JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game", JOptionPane.INFORMATION_MESSAGE);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        isDialogActive = true;
+        if (timer != null) {
+            timer.pause();
+        }
+
+        try {
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
+                oos.writeObject(game);
+                JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } finally {
+            isDialogActive = false;
+            if (timer != null) {
+                Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
+                if (!current.isHuman()) {
+                    timer.resume();
+                }
+            }
         }
     }
 
@@ -155,7 +186,13 @@ public class HexController {
 
                 // Đồng bộ thời gian và danh sách nước đi
                 syncUI();
-                frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+                
+                // Đồng bộ thời gian vào bộ đếm GameTimer
+                if (timer != null) {
+                    timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
+                } else {
+                    frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+                }
 
                 nextTurn();
 
@@ -182,9 +219,12 @@ public class HexController {
 
             syncUI();
 
-            // Đẩy dữ liệu thời gian từ game vừa load xuống Frame qua hàm public
-            frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-
+            // Đồng bộ thời gian vào bộ đếm GameTimer
+            if (timer != null) {
+                timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
+            } else {
+                frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+            }
 
             nextTurn();
 
@@ -316,12 +356,28 @@ public class HexController {
                 } catch (InterruptedException ignored) {
                 }
 
+                // Chờ nếu đang hiển thị Dialog lưu game
+                while (isDialogActive) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+
                 // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính toán
                 if (game.getCurrent() != current.getColor()) {
                     return;
                 }
 
                 int[] move = current.chooseMove(game);
+
+                // Chờ lại lần nữa trước khi cập nhật UI nếu trong quá trình tính toán người chơi bấm Save
+                while (isDialogActive) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
 
                 SwingUtilities.invokeLater(() -> {
                     // Kiểm tra lại lượt trong luồng UI phòng trường hợp Undo diễn ra cùng lúc
