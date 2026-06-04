@@ -254,6 +254,25 @@ public class HexController {
 
             @Override
             public void onTimeout(int player) {
+                panel.setThinking(true);
+                String msg = (player == HexGame.RED) ? 
+                    "Người chơi ĐỎ đã hết thời gian! XANH giành chiến thắng." : 
+                    "Người chơi XANH đã hết thời gian! ĐỎ giành chiến thắng.";
+                
+                int choice = JOptionPane.showConfirmDialog(
+                        frame,
+                        msg + "\nBạn có muốn chơi lại cùng chế độ?",
+                        "Hết giờ",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (choice == JOptionPane.YES_OPTION) {
+                    initGame();
+                } else {
+                    frame.dispose();
+                    SwingUtilities.invokeLater(HexController::new);
+                }
             }
         });
         nextTurn();
