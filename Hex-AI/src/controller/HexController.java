@@ -304,12 +304,7 @@ public class HexController {
             return;
         }
 
-        // Nếu là chế độ tính giờ mỗi nước, ta phải reset quỹ thời gian của 2 bên về ban đầu
-        if (config.timerMode == GameTimer.Mode.PER_MOVE) {
-            game.setRedTimeLeft(config.timerSeconds);
-            game.setBlueTimeLeft(config.timerSeconds);
-            frame.setTimerValues(config.timerSeconds, config.timerSeconds);
-        }
+        timer.switchTo(game.getCurrent());
 
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         panel.setThinking(!current.isHuman());
