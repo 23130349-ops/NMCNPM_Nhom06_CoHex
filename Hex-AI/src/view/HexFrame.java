@@ -236,8 +236,8 @@ public class HexFrame extends JFrame {
     // Các Getter public cho Controller sử dụng
     public HexPanel getPanel() { return panel; }
     public JButton getUndoButton() { return undoButton; }
-    public JButton getBtnSave() { return btnSave; }
-    public JButton getBtnLoad() { return btnLoad; }
+    public JButton getBtnSaveQuick() { return btnSave; }
+    public JButton getBtnLoadQuick() { return btnLoad; }
     public JButton getBtnBackToMenu() { return btnBackToMenu; } // Getter Nút Về Menu
 
     public JMenuItem getSaveMenuItem() { return saveMenuItem; }
