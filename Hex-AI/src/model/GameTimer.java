@@ -34,6 +34,7 @@ public class GameTimer {
     private int activePlayer = -1;
     private final Timer swingTimer;
     private Listener listener;
+    private boolean skipNextReset = false;
 
     /**
      * Khởi tạo bộ đếm ngược thời gian.
@@ -62,10 +63,14 @@ public class GameTimer {
         if (mode == Mode.NONE) return;
 
         if (mode == Mode.PER_MOVE) {
-            if (player == HexGame.RED) {
-                redSeconds = initialSeconds;
+            if (skipNextReset) {
+                skipNextReset = false;
             } else {
-                blueSeconds = initialSeconds;
+                if (player == HexGame.RED) {
+                    redSeconds = initialSeconds;
+                } else {
+                    blueSeconds = initialSeconds;
+                }
             }
             if (listener != null) {
                 listener.onTick(redSeconds, blueSeconds);
@@ -97,6 +102,26 @@ public class GameTimer {
     public int getRedSeconds() { return redSeconds; }
     public int getBlueSeconds() { return blueSeconds; }
     public Mode getMode() { return mode; }
+
+    /**
+     * Cập nhật lại thời gian còn lại của hai người chơi (sử dụng khi tải/load game).
+     */
+    public void setRemainingSeconds(int redSeconds, int blueSeconds) {
+        this.redSeconds = redSeconds;
+        this.blueSeconds = blueSeconds;
+        this.skipNextReset = true;
+        if (listener != null) {
+            listener.onTick(redSeconds, blueSeconds);
+        }
+    }
+
+    /** Khôi phục đếm giờ sau khi tạm dừng (dùng sau khi đóng Dialog lưu game). */
+    public void resume() {
+        if (mode == Mode.NONE || activePlayer == -1) return;
+        if (!swingTimer.isRunning()) {
+            swingTimer.start();
+        }
+    }
 
     /**
      * Trừ thời gian sau mỗi giây trôi qua.
