@@ -4,6 +4,7 @@ import javax.swing.Timer;
 
 /**
  * GameTimer – Bộ máy đếm ngược thời gian.
+ * [Tran05] Thiết kế luồng đếm giờ để đẩy dữ liệu xuống UI.
  */
 public class GameTimer {
 
@@ -57,6 +58,7 @@ public class GameTimer {
     }
 
     /**
+     * [Tran05] Xử lý hiển thị số giây còn lại của ĐỎ và XANH khi chuyển lượt.
      * Chuyển đổi trạng thái đếm ngược khi đổi lượt.
      */
     public void switchTo(int player) {
@@ -83,7 +85,7 @@ public class GameTimer {
         }
     }
 
-    /** Tạm dừng đếm giờ (khi hiện các Dialog kết thúc game, chọn chế độ chơi lại). */
+    /** [Tran05] Kiểm soát hoạt động đồng hồ khi bật/tắt các hộp thoại hệ thống (Tạm dừng đếm giờ). */
     public void pause() {
         swingTimer.stop();
     }
@@ -104,6 +106,7 @@ public class GameTimer {
     public Mode getMode() { return mode; }
 
     /**
+     * [Tran05] Đồng bộ UI Đếm giờ khi thực hiện "Tải Game" (giữ nguyên thời gian nạp game).
      * Cập nhật lại thời gian còn lại của hai người chơi (sử dụng khi tải/load game).
      */
     public void setRemainingSeconds(int redSeconds, int blueSeconds) {
@@ -115,7 +118,7 @@ public class GameTimer {
         }
     }
 
-    /** Khôi phục đếm giờ sau khi tạm dừng (dùng sau khi đóng Dialog lưu game). */
+    /** [Tran05] Khôi phục đếm giờ sau khi tạm dừng (dùng sau khi đóng Dialog lưu game). */
     public void resume() {
         if (mode == Mode.NONE || activePlayer == -1) return;
         if (!swingTimer.isRunning()) {
@@ -124,6 +127,8 @@ public class GameTimer {
     }
 
     /**
+     * [Tran05] Cập nhật dữ liệu thời gian thực cho UI Đếm Giờ.
+     * [Tran05] Xử lý kết thúc trận đấu khi hết giờ.
      * Trừ thời gian sau mỗi giây trôi qua.
      * Một bên hết giờ (Timeout).
      */

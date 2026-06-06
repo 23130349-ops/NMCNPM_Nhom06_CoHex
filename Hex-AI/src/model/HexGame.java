@@ -14,6 +14,7 @@ import java.util.Stack;
  * Tính năng Hoàn nước (Undo), Lịch sử đánh, Save/Load và thời gian.
  */
 public class HexGame implements java.io.Serializable {
+    // [Tran05] Hỗ trợ lưu trữ/tải nhanh ván game dạng nhị phân (.dat) thông qua Serializable.
     private static final long serialVersionUID = 1L;
 
     public static final int EMPTY = 0;
@@ -23,14 +24,15 @@ public class HexGame implements java.io.Serializable {
     private final int n;
     private final int[][] board;
     private int current;
+    // [Tran05] Danh sách chứa các ô thuộc đường chiến thắng để phục vụ đồ họa "Highlight đường chiến thắng".
     private List<int[]> winningPathList = new ArrayList<>();
-
-    // Stack lưu trữ lịch sử các nước đã đi, mỗi phần tử là {r, c}
-    private Stack<int[]> moveHistory;
-
-    // Thời gian còn lại của mỗi người chơi, tính bằng giây
-    private int redTimeLeft = 600;
-    private int blueTimeLeft = 600;
+ 
+     // Stack lưu trữ lịch sử các nước đã đi, mỗi phần tử là {r, c}
+     private Stack<int[]> moveHistory;
+ 
+    // [Tran05] Thời gian còn lại của mỗi người chơi dùng trong đồng hồ đếm ngược.
+     private int redTimeLeft = 600;
+     private int blueTimeLeft = 600;
 
     /**
      * UC-01 – Khởi tạo ván mới
@@ -126,8 +128,8 @@ public class HexGame implements java.io.Serializable {
     }
 
     /**
+     * [Tran05] Thiết kế logic hoàn tác (Undo) - rút nước đi ra khỏi stack lịch sử và trả ô cờ về EMPTY.
      * Hoàn nước.
-     * @return true nếu undo thành công, false nếu không còn nước nào để undo.
      */
     public boolean undo() {
         if (moveHistory.isEmpty()) {
@@ -146,6 +148,7 @@ public class HexGame implements java.io.Serializable {
     }
 
     /**
+     * [Tran05] DFS tìm đường chiến thắng liên tục nối từ cạnh này sang cạnh kia của bàn cờ.
      * UC-05 – Kiểm tra thắng/thua.
      */
     public int checkWinner() {
@@ -274,6 +277,7 @@ public class HexGame implements java.io.Serializable {
     }
 
     /**
+     * [Tran05] Truy vết ngược từ ô đích về ô xuất phát để thu thập đầy đủ đường thắng (Winning Path) phục vụ Highlight.
      * Truy vết ngược từ ô đích về ô xuất phát để lấy đường thắng.
      */
     private void reconstructPath(int[][][] parent, int targetR, int targetC) {

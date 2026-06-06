@@ -23,15 +23,22 @@ public class HexFrame extends JFrame {
     private static final Color BORDER_DEFAULT = new Color(225, 228, 235);
 
     private final HexPanel panel;
+    // [Tran05] UC-09 Trigger (c): Nút để người chơi yêu cầu Undo (Hoàn nước)
     private final JButton undoButton;
+    // [Tran05] Nút Lưu và Tải nhanh trên controlPanel thanh bên
+    // [Tran05] UC-07: SF1.1 - Nút để người chơi click chọn "Save Game"
     private final JButton btnSave;
+    // [Tran05] UC-07: SF2.1 - Nút để người chơi click chọn "Load Game"
     private final JButton btnLoad;
+    // [Tran05] Nút quay trở về Menu chính
     private final JButton btnBackToMenu; // NÚT MỚI: Về Menu
 
     private final JMenuItem saveMenuItem;
     private final JMenuItem loadMenuItem;
+    // [Tran05] UC-09: SF1.6 - Nhãn đếm ngược hiển thị thời gian còn lại của người chơi
     private final TimerLabel redLabel;
     private final TimerLabel blueLabel;
+    // [Tran05] UC-09: SF1.7 - Vùng văn bản hiển thị lịch sử nước đi
     private final JTextArea historyArea;
 
     public HexFrame(int n) {
@@ -64,7 +71,7 @@ public class HexFrame extends JFrame {
         leftGroup.add(hexIcon, BorderLayout.WEST);
         leftGroup.add(titleLbl, BorderLayout.CENTER);
 
-        // Đồng hồ tính giờ
+        // [Tran05] Giao diện hiển thị Thời gian (JLabel) trên controlPanel
         JPanel timerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         timerPanel.setOpaque(false);
         redLabel = new TimerLabel("RED: 10:00", ACCENT_CORAL);
@@ -76,7 +83,7 @@ public class HexFrame extends JFrame {
         timerPanel.add(vsLabel);
         timerPanel.add(blueLabel);
 
-        // Nút VỀ MENU
+        // [Tran05] Nút Quay về Menu để thoát ván hiện tại
         btnBackToMenu = new JButton("🔙 VỀ MENU") {
             boolean hov = false;
             {
@@ -152,8 +159,12 @@ public class HexFrame extends JFrame {
         JPanel actionPanel = new JPanel(new GridLayout(4, 1, 0, 12));
         actionPanel.setOpaque(false);
 
+        // [Tran05] UC-09 Trigger (c) - Khởi tạo nút Hoàn nước (Undo)
         undoButton = createPillButton("Hoàn nước (Undo)", TEXT_TITLE, BG_PAGE, BORDER_DEFAULT);
+        // [Tran05] Khởi tạo bộ đôi nút Lưu và Tải nhanh (Quick Save/Load) dạng nhị phân (.dat)
+        // [Tran05] UC-07: SF1.1 - Khởi tạo nút Lưu ván đấu nhanh
         btnSave    = createPillButton("Lưu nhanh (Quick Save)", ACCENT_GREEN, new Color(ACCENT_GREEN.getRed(), ACCENT_GREEN.getGreen(), ACCENT_GREEN.getBlue(), 20), ACCENT_GREEN);
+        // [Tran05] UC-07: SF2.1 - Khởi tạo nút Tải ván đấu nhanh
         btnLoad    = createPillButton("Tải nhanh (Quick Load)", ACCENT_BLUE, new Color(ACCENT_BLUE.getRed(), ACCENT_BLUE.getGreen(), ACCENT_BLUE.getBlue(), 20), ACCENT_BLUE);
 
         JPopupMenu fileMenu = new JPopupMenu();
@@ -242,10 +253,13 @@ public class HexFrame extends JFrame {
 
     public JMenuItem getSaveMenuItem() { return saveMenuItem; }
     public JMenuItem getLoadMenuItem() { return loadMenuItem; }
+    // [Tran05] UC-07: SF2.8 & UC-09: SF1.7 - Cập nhật lại lịch sử nước đi hiển thị trên panel
     public void updateHistoryText(String text) { historyArea.setText(text); }
     public void showGameOver(String message) {
         JOptionPane.showMessageDialog(this, message, "Game Over", JOptionPane.INFORMATION_MESSAGE);
     }
+    // [Tran05] Cập nhật giá trị hiển thị thời gian còn lại của hai người chơi
+    // [Tran05] UC-07: SF2.7 & UC-09: SF1.6 - Cập nhật hiển thị đồng hồ thời gian còn lại
     public void setTimerValues(int redSecs, int blueSecs) {
         redLabel.setText(String.format("RED: %02d:%02d", redSecs / 60, redSecs % 60));
         blueLabel.setText(String.format("BLUE: %02d:%02d", blueSecs / 60, blueSecs % 60));

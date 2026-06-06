@@ -30,7 +30,9 @@ public class HexPanel extends JPanel {
     private CellClickListener listener;
     private boolean thinking = false;
     private int hoverRow = -1, hoverCol = -1;
+    // [Tran05] Vị trí nước đi cuối cùng được cập nhật để vẽ viền sáng (Highlight Last Move)
     private int lastRow = -1, lastCol = -1;
+    // [Tran05] Danh sách tọa độ các ô cờ trên đường chiến thắng thu được từ thuật toán DFS để tô màu nổi bật
     private List<int[]> winningPath = new ArrayList<>();
 
     public HexPanel(int n) {
@@ -40,6 +42,7 @@ public class HexPanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 if (thinking || listener == null) return;
+                // [Tran05] UC-09 Trigger (a) - Người chơi click chọn ô cờ để đặt quân
                 int[] pos = findCell(e.getX(), e.getY());
                 if (pos != null) listener.onClick(pos[0], pos[1]);
             }
@@ -65,12 +68,16 @@ public class HexPanel extends JPanel {
         });
     }
 
+    // [Tran05] Cập nhật tọa độ nước đi cuối cùng để repaint bàn cờ
     public void setLastMove(int r, int c) { this.lastRow = r; this.lastCol = c; repaint(); }
+    // [Tran05] Nhận danh sách đường thắng từ game để thực hiện Highlight
     public void setWinningPath(List<int[]> path) { this.winningPath = (path != null) ? path : new ArrayList<>(); repaint(); }
+    // [Tran05] UC-07: SF2.9 & UC-09: SF1.5 - Nhận ma trận cờ để chuẩn bị vẽ các quân cờ
     public void setBoard(int[][] board) { this.board = board; }
     public void setThinking(boolean t) { this.thinking = t; }
     public void addCellClickListener(CellClickListener l) { this.listener = l; }
 
+    // [Tran05] UC-07: SF2.10 & UC-09: SF1.3 - Nhận yêu cầu vẽ lại toàn bộ giao diện bàn cờ
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -94,7 +101,7 @@ public class HexPanel extends JPanel {
                     if (p[0] == r && p[1] == c) { isWinningCell = true; break; }
                 }
 
-                // Đổ màu nền ô cờ
+                // [Tran05] Nếu ô nằm trong đường thắng, tô màu vàng nổi bật (WIN_HIGHLIGHT)
                 if (isWinningCell) {
                     g2.setColor(WIN_HIGHLIGHT);
                 } else if (board[r][c] == HexGame.RED) {
@@ -113,7 +120,7 @@ public class HexPanel extends JPanel {
                 g2.setStroke(new BasicStroke(1.5f));
                 g2.drawPolygon(hex);
 
-                // Hiệu ứng "ô vừa đánh" - Dấu chấm tròn phát sáng ở giữa ô
+                // [Tran05] Hiệu ứng "ô vừa đánh" (Highlight Last Move) - Vẽ dấu chấm tròn phát sáng ở giữa ô
                 if (r == lastRow && c == lastCol) {
                     g2.setColor(new Color(255, 255, 255, 200)); // Màu trắng trong suốt
                     g2.fillOval(x - 8, y - 8, 16, 16);
