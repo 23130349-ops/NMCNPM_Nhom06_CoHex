@@ -12,6 +12,7 @@ import java.util.Stack;
  * UC-03 Kiểm tra nước đi hợp lệ
  * UC-05 Kiểm tra thắng/thua
  * Tính năng Hoàn nước (Undo), Lịch sử đánh, Save/Load và thời gian.
+ * [NgocTrinh] Chịu trách nhiệm thiết kế cấu trúc cho UC-01 (Tạo ván mới) và cấu trúc ngăn xếp (Stack) cho UC-08 (Hoàn nước & Lịch sử).
  */
 public class HexGame implements java.io.Serializable {
     // [Tran05] Hỗ trợ lưu trữ/tải nhanh ván game dạng nhị phân (.dat) thông qua Serializable.
@@ -26,10 +27,11 @@ public class HexGame implements java.io.Serializable {
     private int current;
     // [Tran05] Danh sách chứa các ô thuộc đường chiến thắng để phục vụ đồ họa "Highlight đường chiến thắng".
     private List<int[]> winningPathList = new ArrayList<>();
- 
+
      // Stack lưu trữ lịch sử các nước đã đi, mỗi phần tử là {r, c}
+     // [NgocTrinh] UC-08: Cấu trúc dữ liệu ngăn xếp (LIFO) lưu trữ lịch sử các nước đã đi, mỗi phần tử là mảng {r, c}.
      private Stack<int[]> moveHistory;
- 
+
     // [Tran05] Thời gian còn lại của mỗi người chơi dùng trong đồng hồ đếm ngược.
      private int redTimeLeft = 600;
      private int blueTimeLeft = 600;
@@ -37,11 +39,15 @@ public class HexGame implements java.io.Serializable {
     /**
      * UC-01 – Khởi tạo ván mới
      */
+    /**
+     * [NgocTrinh] UC-01 – Khởi tạo ván mới.
+     * Cấp phát bộ nhớ cho ma trận bàn cờ n x n, đặt cờ lượt đi mặc định cho người chơi ĐỎ và khởi tạo ngăn xếp lịch sử rỗng.
+     */
     public HexGame(int n) {
         this.n = n;
         this.board = new int[n][n];
         this.current = RED;
-        this.moveHistory = new Stack<>();
+        this.moveHistory = new Stack<>(); // [NgocTrinh] Sẵn sàng ghi nhận lịch sử nước đi
     }
 
     /**
@@ -79,6 +85,10 @@ public class HexGame implements java.io.Serializable {
     }
 
     /** Trả về danh sách lịch sử đánh. */
+    /**
+     * [NgocTrinh] UC-08: Trả về danh sách lịch sử đánh.
+     * Controller sẽ gọi hàm này để dịch tọa độ thành văn bản hiển thị lên Sidebar và tìm ô vừa đánh.
+     */
     public Stack<int[]> getMoveHistory() {
         return moveHistory;
     }
@@ -120,6 +130,7 @@ public class HexGame implements java.io.Serializable {
         }
 
         board[r][c] = player;
+        // [NgocTrinh] UC-08: Ngay khi đặt quân cờ hợp lệ lên ma trận, lập tức lưu tọa độ [r, c] vào đỉnh của ngăn xếp
         moveHistory.push(new int[]{r, c});
 
         current = (player == RED) ? BLUE : RED;
@@ -128,20 +139,24 @@ public class HexGame implements java.io.Serializable {
     }
 
     /**
-     * [Tran05] Thiết kế logic hoàn tác (Undo) - rút nước đi ra khỏi stack lịch sử và trả ô cờ về EMPTY.
-     * Hoàn nước.
+     * [Tran05] / [NgocTrinh] UC-08 - Thiết kế logic hoàn tác (Undo).
+     * Rút nước đi cuối cùng ra khỏi stack lịch sử, trả trạng thái ô cờ về EMPTY và đổi lại cờ lượt đi.
      */
     public boolean undo() {
+        // [NgocTrinh] Kiểm tra an toàn: Nếu ngăn xếp rỗng thì không làm gì cả
         if (moveHistory.isEmpty()) {
             return false;
         }
 
+        // [NgocTrinh] UC-08: Lấy tọa độ nước đi trên cùng ra khỏi Stack
         int[] lastMove = moveHistory.pop();
         int r = lastMove[0];
         int c = lastMove[1];
 
+        // [NgocTrinh] Xóa quân cờ khỏi ma trận logic
         board[r][c] = EMPTY;
 
+        // [NgocTrinh] Trả lại lượt đi cho người vừa đánh
         current = (current == RED) ? BLUE : RED;
 
         return true;

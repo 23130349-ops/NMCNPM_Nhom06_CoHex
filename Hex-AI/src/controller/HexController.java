@@ -37,16 +37,19 @@ public class HexController {
     // Tên file lưu trữ cố định ngay trong thư mục dự án
     private static final String SAVE_FILE_NAME = "hex_save.dat";
 
+    // [NgocTrinh] UC-01: Khởi tạo ván mới - Gọi SetupDialog để hiển thị màn hình thiết lập và nhận cấu hình (Config) từ người chơi
     public HexController() {
         config = new SetupDialog(null).showDialog();
         if (config == null) {
             System.exit(0);
         }
 
+        // [NgocTrinh] UC-01: Dựng khung giao diện HexFrame và HexPanel dựa trên kích thước bàn cờ đã chọn
         frame = new HexFrame(config.size);
         panel = frame.getPanel();
 
         panel.addCellClickListener(this::handleClick);
+        // [NgocTrinh] UC-08: Hoàn nước - Đăng ký sự kiện lắng nghe cho nút Undo
         frame.getUndoButton().addActionListener(e -> handleUndo());
 
         // Đăng ký sự kiện cho menu Save và Load thường (qua JFileChooser)
@@ -60,6 +63,7 @@ public class HexController {
         // [Tran05] Đăng ký sự kiện cho nút Quay về Menu để thoát ván đấu an toàn
         frame.getBtnBackToMenu().addActionListener(e -> handleBackToMenu());
 
+        // [NgocTrinh] UC-01: Gọi phương thức điều phối để bắt đầu tiến trình sinh ván đấu mới
         initGame();
     }
 
@@ -83,7 +87,7 @@ public class HexController {
             // Tiêu hủy hoàn toàn cửa sổ trận đấu cũ
             frame.dispose();
 
-            // Kích hoạt lại luồng Menu từ đầu
+            // [NgocTrinh] UC-01: Khởi động lại HexController từ đầu, mở lại SetupDialog
             SwingUtilities.invokeLater(HexController::new);
         }
     }
@@ -314,6 +318,9 @@ public class HexController {
     /**
      * [Tran05] Xử lý sự kiện khi ấn nút Undo: Rút nước đi, cập nhật lại thời gian và vẽ lại UI.
      */
+    /**
+     * [NgocTrinh] UC-08: Xử lý sự kiện Hoàn nước (Undo). Rút lại nước đi của cả AI và người chơi.
+     */
     public void handleUndo() {
         if (game == null)
             return;
@@ -325,6 +332,7 @@ public class HexController {
                 return;
             }
 
+            // [NgocTrinh] UC-08: Bắt lỗi logic - Kiểm tra Stack phải có ít nhất 2 nước đi mới cho phép hoàn tác
             if (game.getMoveHistory().size() < 2) {
                 JOptionPane.showMessageDialog(
                         frame,
@@ -335,9 +343,11 @@ public class HexController {
             }
 
             // [Tran05] UC-09 Trigger (c) - Người chơi nhấn Undo
+
             game.undo();
             game.undo();
 
+            // [NgocTrinh] UC-08: Phục hồi lại thời gian cho người chơi ở lượt hiện tại nếu chơi chế độ PER_MOVE
             resetCurrentTurnTimerAfterUndo();
 
             panel.setThinking(false);
@@ -367,12 +377,15 @@ public class HexController {
     }
 
     private void initGame() {
+        // [NgocTrinh] UC-01: Tạo đối tượng Model HexGame mới hoàn toàn với kích thước n x n
         game = new HexGame(config.size);
 
+        // [NgocTrinh] UC-01: Phân loại Người chơi/AI và Bật/Tắt tính năng Undo tùy theo chế độ chơi (Mode)
         switch (config.mode) {
             case HUMAN_VS_AI:
                 redPlayer = new HumanPlayer(HexGame.RED);
                 bluePlayer = new AIPlayer(HexGame.BLUE, ai, config.depth);
+                // [NgocTrinh] UC-08: Chức năng Hoàn nước chỉ khả dụng khi người đấu với máy
                 frame.getUndoButton().setEnabled(true);
                 break;
 
@@ -551,11 +564,13 @@ public class HexController {
         // [Tran05] UC-07: SF2.9 & UC-09: SF1.4 & SF1.5 - setBoard và vẽ lại các quân cờ theo ma trận bàn cờ mới nhất
         panel.setBoard(game.getBoard());
 
+        // [NgocTrinh] UC-08: Lưu và hiển thị lịch sử - Truy xuất ngăn xếp lịch sử từ Model
         Stack<int[]> history = game.getMoveHistory();
         StringBuilder sb = new StringBuilder();
         int turnCount = 1;
 
         // [Tran05] UC-07: SF2.8 & UC-09: SF1.7 - Biên dịch Stack lịch sử thành chuỗi văn bản và hiển thị lại lên HexFrame
+        // [NgocTrinh] UC-08: Duyệt qua lịch sử nước đi, dịch tọa độ thành chuỗi văn bản và in ra JTextArea bên Sidebar
         for (int i = 0; i < history.size(); i++) {
             int[] move = history.get(i);
             String playerStr = (i % 2 == 0) ? "ĐỎ" : "XANH";
@@ -564,6 +579,7 @@ public class HexController {
         frame.updateHistoryText(sb.toString());
 
         // [Tran05] Xác định nước đi cuối cùng để HexPanel vẽ hiệu ứng "ô vừa đánh" (Highlight Last Move)
+        // [NgocTrinh] UC-08: Lấy phần tử trên cùng (peek) của Stack để ra lệnh cho Panel vẽ Highlight "ô vừa đánh"
         if (!history.isEmpty()) {
             int[] last = history.peek();
             panel.setLastMove(last[0], last[1]);
