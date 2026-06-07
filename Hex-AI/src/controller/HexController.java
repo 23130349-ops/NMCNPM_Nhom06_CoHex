@@ -3,6 +3,7 @@ package controller;
 import model.*;
 import view.*;
 import javax.swing.*;
+import java.awt.event.ActionEvent;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Stack;
@@ -10,11 +11,9 @@ import java.util.Stack;
 /**
  * HexController – Bộ điều khiển trung tâm liên kết dữ liệu Model và View.
  * (CẬP NHẬT MỚI):
- * - Triển khai javax.swing.Timer xử lý đếm ngược thời gian theo thời gian thực.
- * - Xử lý Lưu/Tải trực tiếp vào file cố định "hex_save.dat" không qua
- * JFileChooser.
- * - Cập nhật đồng bộ nhãn hiển thị thời gian lên UI mỗi giây hoặc khi đổi trạng
- * thái game.
+ * - Triển khai GameTimer xử lý đếm ngược thời gian theo thời gian thực (Tổng giờ hoặc Mỗi nước).
+ * - Xử lý Lưu/Tải trực tiếp vào file cố định "hex_save.dat" không qua JFileChooser.
+ * - Sửa toàn bộ lỗi trùng lặp phương thức, sai dấu ngoặc và sạch bóng lỗi đỏ.
  * - Xử lý quay về Menu chính an toàn, không làm tràn RAM.
  */
 public class HexController {
@@ -50,22 +49,22 @@ public class HexController {
         panel.addCellClickListener(this::handleClick);
         frame.getUndoButton().addActionListener(e -> handleUndo());
 
-        // Đăng ký sự kiện cho menu Save và Load
+        // Đăng ký sự kiện cho menu Save và Load thường (qua JFileChooser)
         frame.getSaveMenuItem().addActionListener(e -> handleSave());
         frame.getLoadMenuItem().addActionListener(e -> handleLoad());
 
-        // Đăng ký sự kiện lắng nghe cho bộ đôi nút Lưu và Tải game trực tiếp
+        // [Tran05] Đăng ký sự kiện lắng nghe cho bộ đôi nút Lưu và Tải game trực tiếp (Quick Save/Load)
         frame.getBtnSaveQuick().addActionListener(e -> handleSaveGameQuick());
         frame.getBtnLoadQuick().addActionListener(e -> handleLoadGameQuick());
 
-        // Đăng ký sự kiện cho nút Quay về Menu
+        // [Tran05] Đăng ký sự kiện cho nút Quay về Menu để thoát ván đấu an toàn
         frame.getBtnBackToMenu().addActionListener(e -> handleBackToMenu());
 
         initGame();
     }
 
     /**
-     * Xử lý quay về Menu chính khi đang trong ván đấu
+     * [Tran05] Xử lý quay về Menu chính khi đang trong ván đấu (dừng đồng hồ, hủy cửa sổ).
      */
     private void handleBackToMenu() {
         int choice = JOptionPane.showConfirmDialog(
@@ -89,46 +88,13 @@ public class HexController {
         }
     }
 
-
-
     /**
      * Xử lý sự kiện Người chơi nhấn "Save Game" (Menu).
-     * Mở hộp thoại chọn đường dẫn và ghi trạng thái bàn cờ ra file.
-     *
+     * Mở hộp thoại chọn đường dẫn và ghi trạng thái bàn cờ ra file text.
+     * [Tran05] UC-07: SF1.2 - HexFrame tiếp nhận sự kiện lưu game qua Menu.
      */
     private void handleSave() {
         if (game == null) return;
-        // Tạm dừng đồng hồ khi hộp thoại đang mở
-        boolean wasRunning = (countdownTimer != null && countdownTimer.isRunning());
-        if (wasRunning) countdownTimer.stop();
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Lưu ván đấu");
-        chooser.setSelectedFile(new File(""));
-        // Thêm bộ lọc để người dùng chỉ thấy file .txt
-        chooser.setFileFilter(
-                new javax.swing.filechooser.FileNameExtensionFilter("Text Files (*.txt)", "txt")
-        );
-        int result = chooser.showSaveDialog(frame);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = chooser.getSelectedFile();
-            if (selectedFile != null) {
-                // Tự động gắn .txt nếu người dùng không nhập đuôi
-                String path = selectedFile.getAbsolutePath();
-                if (!path.toLowerCase().endsWith(".txt")) {
-                    path += ".txt";
-                }
-                try {
-                    GameSaver.saveGame(game, path);
-                    JOptionPane.showMessageDialog(
-                            frame,
-                            "Lưu thành công!\nFile: " + path,
-                            "Save Game",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(frame, "Lưu lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        if (game == null)
-            return;
 
         isDialogActive = true;
         if (timer != null) {
@@ -139,103 +105,97 @@ public class HexController {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Lưu ván đấu");
             chooser.setSelectedFile(new File("savegame.txt"));
+            chooser.setFileFilter(
+                    new javax.swing.filechooser.FileNameExtensionFilter("Text Files (*.txt)", "txt")
+            );
 
             int result = chooser.showSaveDialog(frame);
             if (result == JFileChooser.APPROVE_OPTION) {
-                try {
-                    GameSaver.saveGame(game, chooser.getSelectedFile().getAbsolutePath());
-                    JOptionPane.showMessageDialog(frame, "Lưu thành công!", "Save Game", JOptionPane.INFORMATION_MESSAGE);
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(frame, "Save lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                File selectedFile = chooser.getSelectedFile();
+                if (selectedFile != null) {
+                    String path = selectedFile.getAbsolutePath();
+                    if (!path.toLowerCase().endsWith(".txt")) {
+                        path += ".txt";
+                    }
+                    try {
+                        // [Tran05] UC-07: SF1.3, SF1.4, SF1.5 - Ghi trạng thái game vào file văn bản
+                        GameSaver.saveGame(game, path);
+                        // [Tran05] UC-07: SF1.8 - Hiển thị Pop-up thông báo lưu thành công
+                        JOptionPane.showMessageDialog(frame, "Lưu thành công!\nFile: " + path, "Save Game", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (IOException ex) {
+                        // [Tran05] UC-07: AF1 - Lỗi Ghi File
+                        JOptionPane.showMessageDialog(frame, "Lưu lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         } finally {
             isDialogActive = false;
             if (timer != null) {
-                Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
-                if (!current.isHuman()) {
-                    timer.resume();
-                }
+                timer.resume();
             }
         }
-        // Khởi động lại đồng hồ sau khi hộp thoại đóng
-        if (wasRunning) countdownTimer.start();
     }
 
     /**
-     * Lưu trực tiếp vào file cố định "hex_save.dat" (Nút Quick Save)
+     * [Tran05] Lưu trực tiếp trạng thái game vào file nhị phân cố định "hex_save.dat" (Quick Save)
+     * UC-07: SF1.2 - HexFrame tiếp nhận sự kiện, gọi hàm và chuyển tiếp đến HexController.
      */
     private void handleSaveGameQuick() {
-        if (game == null) return;
+        // UC-07: Pre-conditions - Trò chơi đang diễn ra, chưa có người chiến thắng
+        if (game == null || isGameOverLogicCheck()) return;
 
-        // Tạm dừng đồng hồ khi hiển thị hộp thoại thông báo lưu game
-        boolean wasRunning = (countdownTimer != null && countdownTimer.isRunning());
-        if (wasRunning) countdownTimer.stop();
-
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
-            oos.writeObject(game);
-            JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game",
-                    JOptionPane.INFORMATION_MESSAGE);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        } finally {
-            // Khởi động lại đồng hồ sau khi hộp thoại đóng
-            if (wasRunning) countdownTimer.start();
         isDialogActive = true;
         if (timer != null) {
             timer.pause();
         }
 
         try {
+            // UC-07: SF1.3, SF1.4, SF1.5 - HexController yêu cầu trạng thái và ghi đè an toàn vào hex_save.dat
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SAVE_FILE_NAME))) {
                 oos.writeObject(game);
+                // UC-07: SF1.7 & SF1.8 - Gửi tín hiệu và hiển thị thông báo "Đã lưu ván đấu!"
                 JOptionPane.showMessageDialog(frame, "Đã lưu ván game hiện tại thành công!", "Lưu Game", JOptionPane.INFORMATION_MESSAGE);
             } catch (IOException ex) {
+                // UC-07: AF1 - Lỗi Ghi File (AF1.2: Bắt exception, AF1.3: Cảnh báo lỗi)
                 JOptionPane.showMessageDialog(frame, "Lỗi hệ thống khi lưu file: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         } finally {
             isDialogActive = false;
             if (timer != null) {
-                Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
-                if (!current.isHuman()) {
-                    timer.resume();
-                }
+                timer.resume();
             }
+            // AF1.4: Ván đấu hiện tại giữ nguyên trạng thái
         }
     }
 
     /**
      * Xử lý sự kiện Người chơi nhấn "Load Game" (Menu).
-     * Mở hộp thoại chọn file, đọc và khôi phục lại ván đấu.
+     * Mở hộp thoại chọn file text, đọc và khôi phục lại ván đấu.
+     * [Tran05] UC-07: SF2.2 - HexFrame tiếp nhận sự kiện tải game qua Menu.
      */
     private void handleLoad() {
-        // Tạm dừng đồng hồ khi hộp thoại đang mở
-        boolean wasRunning = (countdownTimer != null && countdownTimer.isRunning());
-        if (wasRunning) countdownTimer.stop();
+        if (timer != null) timer.pause();
 
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Tải ván đấu");
-        // Thêm bộ lọc để người dùng chỉ chọn được file .txt
         chooser.setFileFilter(
                 new javax.swing.filechooser.FileNameExtensionFilter("Text Files (*.txt)", "txt")
         );
         int result = chooser.showOpenDialog(frame);
         if (result != JFileChooser.APPROVE_OPTION) {
-            // Người dùng hủy → Tiếp tục ván đấu hiện tại
-            if (wasRunning) countdownTimer.start();
+            if (timer != null) timer.resume();
             return;
         }
 
-        // Kiểm tra null trước khi truy cập file
         File selectedFile = chooser.getSelectedFile();
         if (selectedFile == null) {
-            if (wasRunning) countdownTimer.start();
+            if (timer != null) timer.resume();
             return;
         }
 
         try {
+            // [Tran05] UC-07: SF2.3, SF2.4 - Đọc dữ liệu từ file văn bản
             HexGame loadedGame = GameSaver.loadGame(selectedFile.getAbsolutePath());
-            // Chỉ nạp được file có cùng kích thước bàn cờ với cấu hình hiện tại để tránh lỗi giao diện
             if (loadedGame.getSize() != config.size) {
                 JOptionPane.showMessageDialog(
                         frame,
@@ -245,114 +205,114 @@ public class HexController {
                         "Lỗi",
                         JOptionPane.ERROR_MESSAGE
                 );
-                // Tải thất bại → Tiếp tục ván đấu hiện tại
-                if (wasRunning) countdownTimer.start();
+                if (timer != null) timer.resume();
                 return;
             }
 
-            // Tải hợp lệ -> Tiến hành hủy luồng AI cũ của ván đấu hiện tại trước khi ghi đè
             cancelCurrentAI = true;
 
-            // Khôi phục toàn bộ trạng thái game ──────────────────────────────
-            game = loadedGame;
-            panel.setBoard(game.getBoard());
-            panel.setLastMove(-1, -1);
-            panel.setWinningPath(new ArrayList<>());
-            panel.setThinking(false);
-                // Đồng bộ thời gian và danh sách nước đi
-                syncUI();
-                
-                // Đồng bộ thời gian vào bộ đếm GameTimer
-                if (timer != null) {
-                    timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
-                } else {
-                    frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-                }
-
-            // Đồng bộ bàn cờ lên giao diện
-            syncUI();
-
-            // Cập nhật thanh thời gian từ dữ liệu đã khôi phục
-            frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-
-            // Hiện thông báo thành công trước khi kích hoạt lại lượt chơi
-            JOptionPane.showMessageDialog(frame, "Tải ván đấu thành công!", "Load Game", JOptionPane.INFORMATION_MESSAGE);
-
-            // Bật lại trạng thái bình thường, kích hoạt đồng hồ và lượt chơi của ván mới
-            cancelCurrentAI = false;
-            startCountdown();
-            nextTurn();
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Tải lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            // Tải thất bại → Tiếp tục ván đấu hiện tại
-            if (wasRunning) countdownTimer.start();
-        }
-    }
-
-
-    /**
-     * Tải trực tiếp dữ liệu từ file "hex_save.dat" có sẵn (Nút Quick Load)
-     */
-    private void handleLoadGameQuick() {
-        File file = new File(SAVE_FILE_NAME);
-        if (!file.exists()) {
-            JOptionPane.showMessageDialog(frame, "Không tìm thấy dữ liệu ván đấu nào được lưu trước đó!", "Lỗi",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        // Tạm dừng đồng hồ khi đang đọc dữ liệu
-        boolean wasRunning = (countdownTimer != null && countdownTimer.isRunning());
-        if (wasRunning) countdownTimer.stop();
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            HexGame loadedGame = (HexGame) ois.readObject();
-            // Chỉ load được file có cùng kích thước bàn cờ với cấu hình hiện tại
-            if (loadedGame.getSize() != config.size) {
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "Kích thước bàn cờ không khớp!\n(File: " + loadedGame.getSize()
-                                + " × " + loadedGame.getSize()
-                                + ", Hiện tại: " + config.size + " × " + config.size + ")",
-                        "Lỗi",
-                        JOptionPane.ERROR_MESSAGE
-                );
-                // Tải thất bại → Tiếp tục ván đấu hiện tại
-                if (wasRunning) countdownTimer.start();
-                return;
-            }
-            // Tải hợp lệ -> Tiến hành hủy luồng AI cũ của ván đấu hiện tại trước khi ghi đè
-            cancelCurrentAI = true;
-            // Khôi phục trạng thái game
+            // [Tran05] UC-07: SF2.5 - Ghi đè dữ liệu vào Model
             this.game = loadedGame;
             panel.setBoard(game.getBoard());
             panel.setLastMove(-1, -1);
             panel.setWinningPath(new ArrayList<>());
             panel.setThinking(false);
-            syncUI();
-            // Đẩy dữ liệu thời gian từ game vừa load xuống Frame
-            frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
-            JOptionPane.showMessageDialog(frame, "Đã khôi phục lại ván game thành công!", "Tải Game", JOptionPane.INFORMATION_MESSAGE);
-            // Bật lại trạng thái bình thường, kích hoạt đồng hồ và lượt chơi của ván mới
-            cancelCurrentAI = false;
-            startCountdown();
 
-            // Đồng bộ thời gian vào bộ đếm GameTimer
+            // [Tran05] UC-07: SF2.6 - Đồng bộ giao diện
+            syncUI();
+
             if (timer != null) {
+                // [Tran05] UC-07: SF2.7 - setTimerValues
                 timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
+                timer.resume();
             } else {
                 frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
             }
 
+            // [Tran05] UC-07: SF2.11 - Thông báo khôi phục thành công
+            JOptionPane.showMessageDialog(frame, "Tải ván đấu thành công!", "Load Game", JOptionPane.INFORMATION_MESSAGE);
+
+            cancelCurrentAI = false;
             nextTurn();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(frame, "Lỗi khi đọc dữ liệu file lưu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            // Tải thất bại → Tiếp tục ván đấu hiện tại
-            if (wasRunning) countdownTimer.start();
+        } catch (IOException ex) {
+            // [Tran05] UC-07: AF2 - Lỗi Đọc File
+            JOptionPane.showMessageDialog(frame, "Tải lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            if (timer != null) timer.resume();
         }
     }
 
     /**
-     * Xử lý sự kiện khi ấn nút Undo.
-     * Trong chế độ đánh với máy, lùi lại 2 nước để trả lượt về cho người chơi.
+     * [Tran05] Tải trực tiếp dữ liệu trạng thái game từ file nhị phân "hex_save.dat" (Quick Load)
+     * UC-07: SF2.2 - HexFrame tiếp nhận sự kiện, gọi hàm và chuyển tiếp sang HexController.
+     */
+    private void handleLoadGameQuick() {
+        // UC-07: SF2.3 - Hệ thống tìm file hex_save.dat
+        File file = new File(SAVE_FILE_NAME);
+        if (!file.exists()) {
+            // UC-07: AF2 - Lỗi Đọc File (AF2.1: Không tìm thấy file, AF2.3: Hiển thị cảnh báo)
+            JOptionPane.showMessageDialog(frame, "Không tìm thấy dữ liệu ván đấu nào được lưu trước đó!", "Lỗi",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (timer != null) timer.pause();
+
+        // UC-07: SF2.3 - Dùng ObjectInputStream đọc dữ liệu từ file
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            // UC-07: SF2.4 - Đọc thành công, trả về đối tượng loadedGame
+            HexGame loadedGame = (HexGame) ois.readObject();
+            if (loadedGame.getSize() != config.size) {
+                JOptionPane.showMessageDialog(
+                        frame,
+                        "Kích thước bàn cờ không khớp!\n(File: " + loadedGame.getSize()
+                                + " × " + loadedGame.getSize()
+                                + ", Hiện tại: " + config.size + " × " + config.size + ")",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                if (timer != null) timer.resume();
+                return;
+            }
+
+            cancelCurrentAI = true;
+
+            // UC-07: SF2.5 - Ghi đè dữ liệu vừa đọc vào Model hiện tại (this.game = loadedGame)
+            this.game = loadedGame;
+            panel.setBoard(game.getBoard());
+            panel.setLastMove(-1, -1);
+            panel.setWinningPath(new ArrayList<>());
+            panel.setThinking(false);
+
+            // UC-07: SF2.6 - Gọi hàm nội bộ syncUI() để bắt đầu tiến trình đồng bộ giao diện
+            syncUI();
+            
+            // UC-07: SF2.7 - setTimerValues(thời_gian_đã_lưu)
+            frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+
+            // UC-07: SF2.11 - Phát tín hiệu hiển thị thông báo "Khôi phục thành công!"
+            JOptionPane.showMessageDialog(frame, "Đã khôi phục lại ván game thành công!", "Tải Game", JOptionPane.INFORMATION_MESSAGE);
+
+            cancelCurrentAI = false;
+
+            if (timer != null) {
+                timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
+                timer.resume();
+            } else {
+                frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
+            }
+
+            // UC-07: SF2.12 - Tiếp tục ván đấu từ thời điểm đã lưu
+            nextTurn();
+        } catch (Exception ex) {
+            // UC-07: AF2 - Lỗi Đọc File (AF2.2: Bắt exception và hủy bỏ, AF2.3: Cảnh báo lỗi)
+            JOptionPane.showMessageDialog(frame, "Lỗi khi đọc dữ liệu file lưu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            if (timer != null) timer.resume();
+            // AF2.4: Ván đấu hiện tại giữ nguyên trạng thái
+        }
+    }
+
+    /**
+     * [Tran05] Xử lý sự kiện khi ấn nút Undo: Rút nước đi, cập nhật lại thời gian và vẽ lại UI.
      */
     public void handleUndo() {
         if (game == null)
@@ -361,12 +321,10 @@ public class HexController {
         if (config.mode == SetupDialog.Mode.HUMAN_VS_AI) {
             Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
 
-            // Chỉ cho Undo khi đang tới lượt người chơi
             if (!current.isHuman()) {
                 return;
             }
 
-            // Người vs AI cần lùi 2 nước: nước của AI và nước của người chơi
             if (game.getMoveHistory().size() < 2) {
                 JOptionPane.showMessageDialog(
                         frame,
@@ -376,20 +334,22 @@ public class HexController {
                 return;
             }
 
+            // [Tran05] UC-09 Trigger (c) - Người chơi nhấn Undo
             game.undo();
             game.undo();
 
-            // Reset thời gian của người đang tới lượt sau khi Undo
             resetCurrentTurnTimerAfterUndo();
 
             panel.setThinking(false);
             panel.setWinningPath(null);
 
+            // [Tran05] UC-09: SF1.3 - Tiến hành đồng bộ giao diện sau khi thay đổi trạng thái
             syncUI();
             frame.setTimerValues(game.getRedTimeLeft(), game.getBlueTimeLeft());
         }
     }
 
+    // [Tran05] Đặt lại thời gian lượt đi sau khi Undo nếu đang chơi chế độ PER_MOVE
     private void resetCurrentTurnTimerAfterUndo() {
         if (config.timerMode != GameTimer.Mode.PER_MOVE) {
             return;
@@ -400,6 +360,10 @@ public class HexController {
         } else if (game.getCurrent() == HexGame.BLUE) {
             game.setBlueTimeLeft(config.timerSeconds);
         }
+
+        if (timer != null) {
+            timer.setRemainingSeconds(game.getRedTimeLeft(), game.getBlueTimeLeft());
+        }
     }
 
     private void initGame() {
@@ -409,21 +373,18 @@ public class HexController {
             case HUMAN_VS_AI:
                 redPlayer = new HumanPlayer(HexGame.RED);
                 bluePlayer = new AIPlayer(HexGame.BLUE, ai, config.depth);
-
                 frame.getUndoButton().setEnabled(true);
                 break;
 
             case HUMAN_VS_HUMAN:
                 redPlayer = new HumanPlayer(HexGame.RED);
                 bluePlayer = new HumanPlayer(HexGame.BLUE);
-
                 frame.getUndoButton().setEnabled(false);
                 break;
 
             case AI_VS_AI:
                 redPlayer = new AIPlayer(HexGame.RED, ai, config.depth);
                 bluePlayer = new AIPlayer(HexGame.BLUE, ai, config.depth);
-
                 frame.getUndoButton().setEnabled(false);
                 break;
         }
@@ -432,10 +393,12 @@ public class HexController {
         syncUI();
         panel.setThinking(false);
 
+        // [Tran05] Khởi tạo GameTimer và xử lý callback cập nhật UI / kết thúc trận đấu do hết giờ.
         timer = new GameTimer(config.timerMode, config.timerSeconds);
         timer.setListener(new GameTimer.Listener() {
             @Override
             public void onTick(int redSeconds, int blueSeconds) {
+                // [Tran05] UC-09 Trigger (e) / SF1.6 - Mỗi giây Timer hệ thống giảm, đọc giá trị thời gian còn lại của hai bên và cập nhật lên nhãn đếm ngược
                 game.setRedTimeLeft(redSeconds);
                 game.setBlueTimeLeft(blueSeconds);
                 frame.setTimerValues(redSeconds, blueSeconds);
@@ -443,11 +406,16 @@ public class HexController {
 
             @Override
             public void onTimeout(int player) {
+                // [Tran05] UC-09: AF1.1 - Nhận cờ kết thúc ván đấu do hết giờ
+                // [Tran05] UC-09: AF1.7 - Khóa toàn bộ sự kiện click chuột trên HexPanel để không đặt thêm quân
                 panel.setThinking(true);
-                String msg = (player == HexGame.RED) ? 
-                    "Người chơi ĐỎ đã hết thời gian! XANH giành chiến thắng." : 
-                    "Người chơi XANH đã hết thời gian! ĐỎ giành chiến thắng.";
-                
+                if (timer != null) timer.pause();
+
+                String msg = (player == HexGame.RED) ?
+                        "Người chơi ĐỎ đã hết thời gian! XANH giành chiến thắng." :
+                        "Người chơi XANH đã hết thời gian! ĐỎ giành chiến thắng.";
+
+                // [Tran05] UC-09: AF1.6 - Kích hoạt Pop-up / Dialog thông báo kết quả ván đấu
                 int choice = JOptionPane.showConfirmDialog(
                         frame,
                         msg + "\nBạn có muốn chơi lại cùng chế độ?",
@@ -467,6 +435,9 @@ public class HexController {
         nextTurn();
     }
 
+    /**
+     * [Tran05] UC-09 Trigger (a) - Người chơi đặt quân lên bàn cờ.
+     */
     private void handleClick(int r, int c) {
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         if (!current.isHuman()) {
@@ -479,8 +450,11 @@ public class HexController {
         }
 
         game.place(r, c, current.getColor());
+        
+        // [Tran05] UC-09: SF1.3 - Gọi syncUI() đồng bộ giao diện
         syncUI();
 
+        // [Tran05] UC-09: SF1.2 - Kiểm tra cờ trạng thái kết thúc ván đấu
         if (isGameOver()) {
             return;
         }
@@ -488,29 +462,29 @@ public class HexController {
         nextTurn();
     }
 
-    /**
-     * Điều phối lượt chơi tiếp theo.
-     * Nếu là AI: chạy tính toán trên Thread nền để không đóng băng UI.
-     */
     private void nextTurn() {
         if (isGameOver()) {
             return;
         }
-        // Nếu là chế độ tính giờ mỗi nước, reset quỹ thời gian của 2 bên về ban đầu
+
         if (config.timerMode == GameTimer.Mode.PER_MOVE) {
             game.setRedTimeLeft(config.timerSeconds);
             game.setBlueTimeLeft(config.timerSeconds);
             frame.setTimerValues(config.timerSeconds, config.timerSeconds);
+            if (timer != null) {
+                timer.setRemainingSeconds(config.timerSeconds, config.timerSeconds);
+            }
         }
 
-        timer.switchTo(game.getCurrent());
+        if (timer != null) {
+            timer.switchTo(game.getCurrent());
+        }
 
         Player current = (game.getCurrent() == HexGame.RED) ? redPlayer : bluePlayer;
         panel.setThinking(!current.isHuman());
+
         if (!current.isHuman()) {
             final boolean[] localCancel = {false};
-
-            // Lưu tham chiếu của game tại thời điểm bắt đầu Thread AI
             HexGame gameAtStart = this.game;
 
             new Thread(() -> {
@@ -518,48 +492,41 @@ public class HexController {
                     Thread.sleep(400);
                 } catch (InterruptedException ignored) {}
 
-                // Kiểm tra cờ hủy HOẶC đối tượng game đã bị thay đổi (do Load game khác) TRƯỚC KHI tính Minimax
                 if (cancelCurrentAI || game != gameAtStart) {
                     localCancel[0] = true;
-                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính
-                // toán
-                // Chờ nếu đang hiển thị Dialog lưu game
+                    return;
+                }
+
                 while (isDialogActive) {
                     try {
                         Thread.sleep(100);
-                    } catch (InterruptedException ignored) {
-                    }
+                    } catch (InterruptedException ignored) {}
                 }
 
-                // Tránh trường hợp người chơi vừa ấn Undo làm rỗng bàn cờ nhưng AI vẫn tính toán
                 if (game.getCurrent() != current.getColor()) {
                     return;
                 }
 
-                // kiểm tra lượt chơi hợp lệ (cho trường hợp Undo)
-                if (game.getCurrent() != current.getColor()) return;
-
                 int[] move = current.chooseMove(game);
 
-                // Chờ lại lần nữa trước khi cập nhật UI nếu trong quá trình tính toán người chơi bấm Save
                 while (isDialogActive) {
                     try {
                         Thread.sleep(100);
-                    } catch (InterruptedException ignored) {
-                    }
+                    } catch (InterruptedException ignored) {}
                 }
 
                 SwingUtilities.invokeLater(() -> {
-                    // Kiểm tra cờ hủy lần cuối trên EDT trước khi đặt quân
-                    // Ngăn AI cũ gọi game.place() lên game mới sau khi Load
                     if (cancelCurrentAI || localCancel[0] || game != gameAtStart) return;
-
-                    // kiểm tra lượt chơi còn đúng không (cho Undo)
                     if (game.getCurrent() != current.getColor()) return;
 
                     if (move != null) {
+                        // [Tran05] UC-09 Trigger (b) - AI hoàn thành tính toán và chọn nước đi
                         game.place(move[0], move[1], current.getColor());
+                        
+                        // [Tran05] UC-09: SF1.3 - Đồng bộ giao diện
                         syncUI();
+                        
+                        // [Tran05] UC-09: SF1.2 - Kiểm tra cờ trạng thái kết thúc
                         if (isGameOver()) return;
                         nextTurn();
                     } else {
@@ -577,18 +544,18 @@ public class HexController {
     }
 
     /**
-     * Đồng bộ hóa dữ liệu từ Model sang View:
-     * - Cập nhật ma trận ô cờ
-     * - Cập nhật văn bản vùng danh sách lịch sử đánh
-     * - Cập nhật ô vừa đánh cuối cùng để vẽ viền highlight
+     * [Tran05] UC-09: SF1.3 - Tiến trình đồng bộ giao diện.
+     * [Tran05] UC-07: SF2.6 - Gọi hàm nội bộ syncUI để bắt đầu tiến trình đồng bộ giao diện sau khi tải game.
      */
     private void syncUI() {
+        // [Tran05] UC-07: SF2.9 & UC-09: SF1.4 & SF1.5 - setBoard và vẽ lại các quân cờ theo ma trận bàn cờ mới nhất
         panel.setBoard(game.getBoard());
 
         Stack<int[]> history = game.getMoveHistory();
         StringBuilder sb = new StringBuilder();
         int turnCount = 1;
 
+        // [Tran05] UC-07: SF2.8 & UC-09: SF1.7 - Biên dịch Stack lịch sử thành chuỗi văn bản và hiển thị lại lên HexFrame
         for (int i = 0; i < history.size(); i++) {
             int[] move = history.get(i);
             String playerStr = (i % 2 == 0) ? "ĐỎ" : "XANH";
@@ -596,6 +563,7 @@ public class HexController {
         }
         frame.updateHistoryText(sb.toString());
 
+        // [Tran05] Xác định nước đi cuối cùng để HexPanel vẽ hiệu ứng "ô vừa đánh" (Highlight Last Move)
         if (!history.isEmpty()) {
             int[] last = history.peek();
             panel.setLastMove(last[0], last[1]);
@@ -603,6 +571,7 @@ public class HexController {
             panel.setLastMove(-1, -1);
         }
 
+        // [Tran05] UC-07: SF2.10 & UC-09: SF1.3 (tiếp tục) - Gọi repaint() yêu cầu HexPanel vẽ lại toàn bộ bàn cờ
         panel.repaint();
     }
 
@@ -610,17 +579,28 @@ public class HexController {
         return game != null && game.checkWinner() != HexGame.EMPTY;
     }
 
+    /**
+     * [Tran05] UC-09: SF1.2 & AF1.1 - Kiểm tra cờ trạng thái kết thúc ván đấu.
+     */
     private boolean isGameOver() {
         int winner = game.checkWinner();
         if (winner != HexGame.EMPTY) {
+            // [Tran05] UC-09: AF1.1 - Nhận cờ kết thúc ván đấu (một bên đã kết nối chuỗi chiến thắng)
             if (timer != null) {
                 timer.pause();
             }
 
+            // [Tran05] UC-09: AF1.2 & AF1.3 - Truy xuất ma trận cuối cùng và repaint Highlight đường chiến thắng
             panel.setWinningPath(game.getWinningPath());
             panel.repaint();
 
+            // [Tran05] UC-09: AF1.4 - Cập nhật lần cuối thời gian còn lại lên nhãn đếm ngược (đã đồng bộ qua pause/onTick)
+            // [Tran05] UC-09: AF1.5 - Cập nhật lịch sử nước đi đầy đủ qua syncUI trước đó
+
+            // [Tran05] UC-09: AF1.6 - Kích hoạt Pop-up / Dialog thông báo kết quả ván đấu
             String msg = (winner == HexGame.RED) ? "RED THẮNG!" : "BLUE THẮNG!";
+            
+            // [Tran05] UC-09: AF1.7 - Khóa toàn bộ sự kiện click chuột trên HexPanel (được kiểm soát gián tiếp vì không gọi nextTurn và kết thúc game)
             int choice = JOptionPane.showConfirmDialog(
                     frame,
                     msg + "\nBạn có muốn chơi lại cùng chế độ?",
@@ -634,7 +614,6 @@ public class HexController {
                 if (timer != null) {
                     timer.pause();
                 }
-
                 frame.dispose();
                 SwingUtilities.invokeLater(HexController::new);
             }
