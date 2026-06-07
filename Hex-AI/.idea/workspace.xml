@@ -5,18 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4be4d1ac-6342-4db6-92a0-faeab0543c50" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/amazonq.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/awsToolkit.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/model/GameSaver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/model/GameSaver.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/HexTestTrinh.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hex_save.dat" beforeDir="false" afterPath="$PROJECT_DIR$/hex_save.dat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controller/HexController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/controller/HexController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/model/HexGame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/model/HexGame.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/view/HexPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/view/HexPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/view/SetupDialog.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/view/SetupDialog.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -37,6 +44,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.HexController.executor": "Run",
+    "Application.HexTestTrinh.executor": "Run",
     "Application.Main.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",

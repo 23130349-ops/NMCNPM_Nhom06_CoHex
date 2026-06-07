@@ -11,6 +11,8 @@ import java.awt.event.*;
  * SetupDialog – Hộp thoại chọn chế độ chơi trước khi bắt đầu ván mới.
  * Thiết kế giao diện toàn màn hình, có chọn chế độ chơi, kích thước bàn cờ,
  * độ khó AI và thời gian.
+ * * [NgocTrinh] Đảm nhiệm UC-01 (Khởi tạo ván mới): Xây dựng màn hình thiết lập
+ * để thu thập các tham số đầu vào của người chơi trước khi sinh ra bàn cờ.
  */
 public class SetupDialog extends JDialog {
 
@@ -41,6 +43,10 @@ public class SetupDialog extends JDialog {
         AI_VS_AI
     }
 
+    /**
+     * [NgocTrinh] UC-01: Lớp Data Transfer Object (DTO) lưu trữ toàn bộ cấu hình ván mới
+     * để truyền dữ liệu từ View (SetupDialog) sang Controller.
+     */
     public static class Config {
         public int size;
         public Mode mode;
@@ -422,21 +428,21 @@ public class SetupDialog extends JDialog {
 
         body.add(Box.createVerticalGlue());
 
-        // 2. Chọn kích thước bàn cờ
+        // [NgocTrinh] UC-01: Khu vực chọn Kích thước bàn cờ
         body.add(centerComponent(sectionLabel("KÍCH THƯỚC BÀN CỜ")));
         body.add(vgap(20));
         body.add(centerComponent(buildSizeSelector()));
 
         body.add(Box.createVerticalGlue());
 
-        // 3. Chọn độ khó AI
+        // [NgocTrinh] UC-01: Khu vực chọn Độ khó của AI
         body.add(centerComponent(sectionLabel("ĐỘ KHÓ AI")));
         body.add(vgap(20));
         body.add(centerComponent(buildDifficultySelector()));
 
         body.add(Box.createVerticalGlue());
 
-        // 4. Cài đặt thời gian
+        // [NgocTrinh] UC-01: Khu vực thiết lập Thời gian đếm ngược
         body.add(centerComponent(sectionLabel("CÀI ĐẶT THỜI GIAN")));
         body.add(vgap(20));
         body.add(centerComponent(buildTimerModeRow()));
@@ -445,7 +451,7 @@ public class SetupDialog extends JDialog {
 
         body.add(Box.createVerticalGlue());
 
-        // 5. Nút bắt đầu
+        // [NgocTrinh] UC-01: Nút xác nhận bắt đầu tạo ván
         body.add(centerComponent(buildStartButton()));
         body.add(Box.createVerticalStrut(50));
 
@@ -711,9 +717,11 @@ public class SetupDialog extends JDialog {
         return new Font(Font.DIALOG, Font.PLAIN, size);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  Public API
-    // ═══════════════════════════════════════════════════════════
+    /**
+     * [NgocTrinh] UC-01: Hàm public duy nhất được gọi từ HexController.
+     * Hàm này sẽ hiển thị UI, block luồng xử lý chờ người chơi cấu hình,
+     * sau đó đóng gói mọi thông số vào Config và trả về.
+     */
     public Config showDialog() {
         setVisible(true);
 
@@ -721,6 +729,7 @@ public class SetupDialog extends JDialog {
             return null;
         }
 
+        // [NgocTrinh] UC-01: Khởi tạo và ghi nhận toàn bộ giá trị đã chọn vào đối tượng DTO
         Config cfg = new Config();
 
         cfg.size = selectedSize;
@@ -737,6 +746,6 @@ public class SetupDialog extends JDialog {
         cfg.timerMode = currentTimerMode;
         cfg.timerSeconds = currentTimerSeconds;
 
-        return cfg;
+        return cfg; // [NgocTrinh] Trả kết quả về cho Controller để thực thi tạo ván đấu
     }
 }

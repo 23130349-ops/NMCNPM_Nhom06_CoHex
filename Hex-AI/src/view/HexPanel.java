@@ -10,6 +10,11 @@ import model.HexGame;
 /**
  * HexPanel – Panel vẽ bàn cờ và xử lý sự kiện click chuột của người chơi.
  */
+/**
+ * HexPanel – Panel vẽ bàn cờ và xử lý sự kiện click chuột của người chơi.
+ * * [NgocTrinh] Chịu trách nhiệm thiết kế khung vẽ lưới lục giác cho UC-01 (Khởi tạo ván mới)
+ * và xử lý hiệu ứng UI cho UC-08 (Lịch sử đánh & Hoàn nước).
+ */
 public class HexPanel extends JPanel {
 
     // Bảng màu đồng bộ
@@ -35,9 +40,12 @@ public class HexPanel extends JPanel {
     // [Tran05] Danh sách tọa độ các ô cờ trên đường chiến thắng thu được từ thuật toán DFS để tô màu nổi bật
     private List<int[]> winningPath = new ArrayList<>();
 
+    /**
+     * [NgocTrinh] UC-01: Khởi tạo kích thước logic cho bảng vẽ bàn cờ n x n.
+     */
     public HexPanel(int n) {
         this.n    = n;
-        hexes     = new Polygon[n][n];
+        hexes     = new Polygon[n][n]; // [NgocTrinh] Chuẩn bị mảng đa giác rỗng tương ứng với kích thước đã chọn
 
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
@@ -89,6 +97,7 @@ public class HexPanel extends JPanel {
         int dx = cellSize;
         int dy = (int)(cellSize * Math.sqrt(3) / 2);
 
+        // [NgocTrinh] UC-01: Vòng lặp dựng hình và render toàn bộ các ô lục giác lên màn hình
         for (int r = 0; r < n; r++) {
             for (int c = 0; c < n; c++) {
                 int x = c * dx + r * dx / 2 + OFFSET_X;
